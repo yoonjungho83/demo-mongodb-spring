@@ -1,1 +1,28 @@
-spring.application.name=demoMongo
+springdoc:
+  api-docs:
+    path: /swagger/v3/api-docs
+  swagger-ui:
+    path: /swagger/swagger-ui.html
+
+spring: 
+  application:
+    name: demoMongo
+
+  data:  
+    mongodb:
+      host: 43.200.241.170
+      port: 27017
+      authentication-database: admin
+      username: rios
+      password: rrdb5678
+      database: rios-mongo-test
+      isActive: true
+      
+  jpa:
+    hibernate:
+      ddl-auto: none
+      use-new-id-generator-mappings: false
+    show-sql: true
+    properties:
+      hibernate.dialect: org.hibernate.dialect.MySQL55Dialect    
+    
