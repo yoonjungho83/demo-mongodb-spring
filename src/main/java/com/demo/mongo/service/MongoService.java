@@ -18,6 +18,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.demo.mongo.common.DataUtil;
 import com.demo.mongo.model.entity.mongo.Address;
 import com.demo.mongo.model.entity.mongo.QUserMst;
 import com.demo.mongo.model.entity.mongo.RoleDetail;
@@ -37,6 +38,7 @@ public class MongoService {
 
 	private final UserMstRepository userMstRepository;
 	private final MongoTemplate mongoTemplate;
+	private final DataUtil dataUtil;
 	
 	
 	QUserMst  qUserMst = QUserMst.userMst;  
@@ -115,7 +117,7 @@ public class MongoService {
 		return list;
 	}
 	
-	//조회
+	//조회 get mg/user/{userId}
 	public Object getUser(String userId) {
 		//특정 조건 조회1
 		List<UserMst> list1 = mongoTemplate.find(getQuery("userId",userId),UserMst.class);
@@ -150,13 +152,17 @@ public class MongoService {
 		//특정조건 조회 4 : querydsl
 		Iterable<UserMst> iter = 
 				userMstRepository.findAll(
-//						    qUserMst.userId.eq("user1")
+						    qUserMst.userId.eq("user1")
 //						.or(qUserMst.userId.eq("user100"))
 //						qUserMst.userId.in("user1","user100")
-						qUserMst.age.between(1, 300)
+//						qUserMst.age.between(1, 300)
 					   ,Sort.by("createDate").descending()
 //					   ,Sort.by("createDate").ascending()
 						);
+		
+		
+		
+		
 		
 		iter.forEach(x->{
 			log.info("createDate = {} / userId = {}",x.getCreateDate(),  x.getUserId());
@@ -167,21 +173,59 @@ public class MongoService {
 //		}
 	
 		
-		//특정조건 조회 5 : querydsl
-		BooleanExpression whereClause =
-				 qUserMst.roleList.any().useYn.eq("Y")
-            .and(qUserMst.roleList.any().useEDate.gt(LocalDateTime.now().plusMonths(10)) );
-		Iterable<UserMst> inter2 =  userMstRepository.findAll(whereClause);
-
-		//특정조건 조회 6 : querydsl
-		BooleanExpression whereClaus3 =
-				 qUserMst.roleList.any().useYn.eq("Y")
-            .and(qUserMst.roleList.any().useEDate.between(LocalDateTime.now().plusDays(40),
-            		                                      LocalDateTime.now().plusDays(100)  ) );
-		Iterable<UserMst> inter3 =  userMstRepository.findAll(whereClaus3);
+//		//특정조건 조회 5 : querydsl
+//		BooleanExpression whereClause =
+//				 qUserMst.roleList.any().useYn.eq("Y")
+//            .and(qUserMst.roleList.any().useEDate.gt(LocalDateTime.now().plusMonths(10)) );
+//		Iterable<UserMst> inter2 =  userMstRepository.findAll(whereClause);
+//
+//		//특정조건 조회 6 : querydsl
+//		BooleanExpression whereClaus3 =
+//				 qUserMst.roleList.any().useYn.eq("Y")
+//            .and(qUserMst.roleList.any().useEDate.between(LocalDateTime.now().plusDays(40),
+//            		                                      LocalDateTime.now().plusDays(100)  ) );
+//		Iterable<UserMst> inter3 =  userMstRepository.findAll(whereClaus3);
 		
 		
-		return userInter;
+		
+		/******** 대용량 쿼리 21만건 select start  *********/
+//		log.info("Mamager start 약 21만건 40MB로 추정 총 조회시간 3분정도 걸림. {}" , LocalDateTime.now());
+//		BooleanExpression whereClaus4 =
+//				qUserMst.roleList.any().roleName.eq("MANAGER")
+////				 qUserMst.roleList.any().useYn.eq("Y")
+////            .and(qUserMst.roleList.any().roleName.eq("MANAGER")  )
+//				;
+//		Iterable<UserMst> inter4 =  userMstRepository.findAll(whereClaus4);
+//		
+//		log.info("Mamager end {}" , LocalDateTime.now());
+//		
+//		List<Object>  itList11 =  dataUtil.iteratorToList(inter4);
+//		
+//		log.info("Mamager change {}" , LocalDateTime.now());
+		/******** 대용량 쿼리 21만건 select end  *********/
+		
+		List<String> userList = Arrays.asList(
+				 "user1","user10"
+				,"user2","user20"
+				,"user3","user30"
+				,"user4","user40"
+				,"user5","user50"
+				,"user6","user60"
+				,"user7","user70"
+				,"user8","user80"
+				,"user9","user90"
+				);
+		Iterable<UserMst> iter10 = 
+				userMstRepository.findAll(
+						    qUserMst.userId.in(userList)
+//						.or(qUserMst.userId.eq("user100"))
+//						qUserMst.userId.in("user1","user100")
+//						qUserMst.age.between(1, 300)
+					   ,Sort.by("createDate").descending()
+//					   ,Sort.by("createDate").ascending()
+						);
+		List<Object>  itList =  dataUtil.iteratorToList(iter10);
+		return itList;
 	}
 	
 	

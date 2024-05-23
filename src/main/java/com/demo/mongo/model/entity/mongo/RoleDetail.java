@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,6 +19,7 @@ public class RoleDetail {
 
 	@Id
 	private ObjectId roleId;
+	@Indexed
 	private String roleName;
 	private String useYn;
 	private String desc;
