@@ -5,7 +5,7 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventListener;
 import org.springframework.data.mongodb.core.mapping.event.BeforeConvertEvent;
 
-import com.demo.mongo.model.entity.UserMst;
+import com.demo.mongo.model.entity.mongo.UserMst;
 
 public class UserCascadeSaveMongoEventListener extends AbstractMongoEventListener<Object>{
 

@@ -5,13 +5,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.mongo.MongoProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 import org.springframework.data.mongodb.core.convert.DbRefResolver;
 import org.springframework.data.mongodb.core.convert.DefaultDbRefResolver;
 import org.springframework.data.mongodb.core.convert.DefaultMongoTypeMapper;
@@ -20,6 +26,8 @@ import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
+import com.demo.mongo.converter.LocalDateTimeReadConverter;
+import com.demo.mongo.converter.LocalDateTimeWriteConverter;
 import com.demo.mongo.converter.OffsetDateTimeReadConverter;
 import com.demo.mongo.converter.OffsetDateTimeWriteConverter;
 import com.demo.mongo.converter.UserWriterConverter;
@@ -39,25 +47,31 @@ public class MongoConfig  extends AbstractMongoClientConfiguration{//
 	
 	@Value("${spring.data.mongodb.database}")
 	private String database;
-	@Value("${spring.data.mongodb.username}")
-	private String username;
-	@Value("${spring.data.mongodb.password}")
-	private String password;
 	@Value("${spring.data.mongodb.host}")
 	private String host;
 	@Value("${spring.data.mongodb.port}")
 	private String port;
-	@Value("${spring.data.mongodb.authentication-database}")
-	private String authenticationDB;
+//	@Value("${spring.data.mongodb.username}")
+//	private String username;
+//	@Value("${spring.data.mongodb.password}")
+//	private String password;
+//	@Value("${spring.data.mongodb.authentication-database}")
+//	private String authenticationDB;
+	
 	
 	@Override
 	protected String getDatabaseName() {
 		return database;
+		
 	}
 	
+//	@Bean(name = "primaryMongoClient")
 	@Override
 	public MongoClient mongoClient() {
-		String mongoCon = "mongodb://"+username+":"+password+"@"+host+":"+port+"/dbName?authSource="+authenticationDB;
+//		String mongoCon = "mongodb://"+username+":"+password+"@"+host+":"+port+"/"+database+"?authSource="+authenticationDB;
+		String mongoCon = "mongodb://"+host+":"+port+"/"+database;
+		
+		System.out.println("mongoCon=========>"+mongoCon);
 		ConnectionString connectionString = new ConnectionString(mongoCon);
         MongoClientSettings mongoClientSettings = 
         			MongoClientSettings.builder()
@@ -85,6 +99,8 @@ public class MongoConfig  extends AbstractMongoClientConfiguration{//
 		/* OffsetDateTime converter : mongodb는 OffsetDateTime을 저장할 수 없으므로 컨버터를 이용해 저장하고 가져올때 다시 바꿔줘야함 */
 		converters.add(new OffsetDateTimeReadConverter());
 		converters.add(new OffsetDateTimeWriteConverter());
+		converters.add(new LocalDateTimeReadConverter());
+		converters.add(new LocalDateTimeWriteConverter());
 		converters.add(new UserWriterConverter());
 		return new MongoCustomConversions(converters);
 	}
@@ -122,7 +138,26 @@ public class MongoConfig  extends AbstractMongoClientConfiguration{//
 	
 	
 	
-	
+//    @Bean(name = "primaryProperties")
+//    @ConfigurationProperties(prefix = "mongodb.primary")
+//    @Primary
+//    public MongoProperties primaryProperties() {
+//        return new MongoProperties();
+//    }
+//
+//    
+//
+//    @Primary
+//    @Bean(name = "primaryMongoDBFactory")
+//    public MongoDatabaseFactory mongoDatabaseFactory(@Qualifier("primaryMongoClient") MongoClient mongoClient, @Qualifier("primaryProperties") MongoProperties mongoProperties) {
+//        return new SimpleMongoClientDatabaseFactory(mongoClient, mongoProperties.getDatabase());
+//    }
+//
+//    @Primary
+//    @Bean(name = "primaryMongoTemplate")
+//    public MongoTemplate mongoTemplate(@Qualifier("primaryMongoDBFactory") MongoDatabaseFactory mongoDatabaseFactory) {
+//        return new MongoTemplate(mongoDatabaseFactory);
+//    }
 
 	   
 	

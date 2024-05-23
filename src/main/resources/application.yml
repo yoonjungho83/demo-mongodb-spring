@@ -1,8 +1,5 @@
-springdoc:
-  api-docs:
-    path: /swagger/v3/api-docs
-  swagger-ui:
-    path: /swagger/swagger-ui.html
+server:
+  port: 9999    
 
 spring: 
   application:
@@ -10,13 +7,23 @@ spring:
 
   data:  
     mongodb:
-      host: 43.200.241.170
+#      host: 43.200.241.170
+#      port: 27017
+#      authentication-database: admin
+#      username: rios
+#      password: rrdb5678
+#      database: rios-mongo-test
+#      isActive: true
+      
+      host: 127.0.0.1
       port: 27017
-      authentication-database: admin
-      username: rios
-      password: rrdb5678
-      database: rios-mongo-test
+#      authentication-database: admin
+#      username: root
+#      password: 1219
+      database: mongo-test
       isActive: true
+      
+      auto-index-creation: true # 몽고DB의 unique index 사용시 설정      
       
   jpa:
     hibernate:
@@ -26,3 +33,11 @@ spring:
     properties:
       hibernate.dialect: org.hibernate.dialect.MySQL55Dialect    
     
+logging:
+  level:
+    org:
+      springframework:
+        data:
+          mongodb:
+            core:
+              MongoTemplate: INFO

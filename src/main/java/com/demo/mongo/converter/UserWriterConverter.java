@@ -2,7 +2,7 @@ package com.demo.mongo.converter;
 
 import org.springframework.core.convert.converter.Converter;
 
-import com.demo.mongo.model.entity.UserMst;
+import com.demo.mongo.model.entity.mongo.UserMst;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 

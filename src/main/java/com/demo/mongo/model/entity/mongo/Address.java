@@ -1,14 +1,14 @@
-package com.demo.mongo.model.entity;
+package com.demo.mongo.model.entity.mongo;
 
-import java.time.OffsetDateTime;
-import java.util.List;
+import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.domain.Persistable;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,20 +20,23 @@ import lombok.ToString;
 @NoArgsConstructor
 @Builder
 @ToString
-@Document(collection = "UserRoleMap")
-public class UserRoleMap implements Persistable<String>{
+@Document(collection = "Address")
+public class Address implements Persistable<String>{
 
-	
 	@Id
 	private String id;
 	
-	private String userId;
-	private List<String> roleId;
+	@Indexed
+	private String zipcode;
+	private String addr;
+	private String addrDetail;
+	private String desc;
 	
 	@CreatedDate
-    private OffsetDateTime createDate;
+    private LocalDateTime createDate;
     @LastModifiedDate
-    private OffsetDateTime updateDate;
+    private LocalDateTime updateDate;
+    
 	
 	@Override
     public String getId() {

@@ -1,8 +1,11 @@
-package com.demo.mongo.model.entity;
+package com.demo.mongo.model.entity.mongo;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -12,7 +15,6 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 import com.demo.mongo.annotation.CascadeSave;
 
-import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,32 +23,44 @@ import lombok.ToString;
 
 @Data
 @AllArgsConstructor
-@NoArgsConstructor
+//@NoArgsConstructor
 @Builder
 @ToString
-@Document
+@Document(collection = "UserMst")
 public class UserMst implements Persistable<String>{
 
 	@Id
     private String  id;
 	
-	@Indexed
+	@Indexed//(unique = true)
 	private String userId;
 	private String userName;
 	private String birth;
-	private String age;
+	private Integer age;
 	private String phone;
+	private String desc;
 	
+	
+	/* @DBRef , @CascadeSave
+	 *  custom casecade : userMst에 address 객체 입력시 objectId가 입력되며 해당 객체는 address 테이블에 저장됨.
+	 * */
 	@DBRef
     @Field("address")
-    @CascadeSave
+    @CascadeSave 
     private Address address;
 	
-	@CreatedDate
-    private OffsetDateTime createDate;
-    @LastModifiedDate
-    private OffsetDateTime updateDate;
+	
+	private List<RoleDetail> roleList = new ArrayList<>();
+	
+	@CreatedDate // date 자동입렫됨
+    private LocalDateTime createDate;
+    @LastModifiedDate // date 자동입력됨
+    private LocalDateTime updateDate;
     
+    
+    public UserMst() {
+    	roleList = new ArrayList<>();
+    }
 	
 	@Override
     public String getId() {
