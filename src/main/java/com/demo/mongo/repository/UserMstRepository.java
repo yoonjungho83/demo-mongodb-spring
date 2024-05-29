@@ -9,9 +9,9 @@ import org.springframework.stereotype.Repository;
 
 import com.demo.mongo.model.entity.mongo.UserMst;
 
-@Repository
+
 public interface UserMstRepository extends MongoRepository<UserMst, String>
-                                          , QuerydslPredicateExecutor<UserMst> {
+                                          , QuerydslPredicateExecutor<UserMst> , UserMstRepositoryWrapper {
 
 	
 	@Query("{userId: ?0 }")

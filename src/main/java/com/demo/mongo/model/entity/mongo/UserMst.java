@@ -27,7 +27,7 @@ import lombok.ToString;
 @Builder
 @ToString
 @Document(collection = "UserMst")
-public class UserMst implements Persistable<String>{
+public class UserMst {//implements Persistable<String>
 
 	@Id
     private String  id;
@@ -44,13 +44,14 @@ public class UserMst implements Persistable<String>{
 	/* @DBRef , @CascadeSave
 	 *  custom casecade : userMst에 address 객체 입력시 objectId가 입력되며 해당 객체는 address 테이블에 저장됨.
 	 * */
-	@DBRef
-    @Field("address")
-    @CascadeSave 
-    private Address address;
+//	@DBRef
+//    @Field("address")
+//    @CascadeSave 
+//    private Address address;
 	
+	private List<Address> addrList;
 	
-	private List<RoleDetail> roleList = new ArrayList<>();
+	private List<RoleDetail> roleList;
 	
 	@CreatedDate // date 자동입렫됨
     private LocalDateTime createDate;
@@ -60,17 +61,18 @@ public class UserMst implements Persistable<String>{
     
     public UserMst() {
     	roleList = new ArrayList<>();
+    	addrList = new ArrayList<>();
     }
 	
-	@Override
-    public String getId() {
-        return this.id;
-    }
-
-    @Override
-    public boolean isNew() {
-        // createDate가 null이면 새로운 객체로 판별
-        return createDate == null;
-    }
+//	@Override
+//    public String getId() {
+//        return this.id;
+//    }
+//
+//    @Override
+//    public boolean isNew() {
+//        // createDate가 null이면 새로운 객체로 판별
+//        return createDate == null;
+//    }
 	
 }

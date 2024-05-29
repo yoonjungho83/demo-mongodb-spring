@@ -14,9 +14,12 @@ public class UserCascadeSaveMongoEventListener extends AbstractMongoEventListene
 	
 	@Override
     public void onBeforeConvert(final BeforeConvertEvent<Object> event) {
-        final Object source = event.getSource();
-        if ((source instanceof UserMst) && (((UserMst) source).getAddress() != null)) {
-            mongoOperations.save(((UserMst) source).getAddress());
-        }
+		
+		System.out.println("UserCascadeSaveMongoEventListener > onBeforeConvert");
+		
+//        final Object source = event.getSource();
+//        if ((source instanceof UserMst) && (((UserMst) source).getAddress() != null)) {
+//            mongoOperations.save(((UserMst) source).getAddress());
+//        }
     }
 }

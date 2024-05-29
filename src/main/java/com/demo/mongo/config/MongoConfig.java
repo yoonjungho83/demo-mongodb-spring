@@ -101,7 +101,7 @@ public class MongoConfig  extends AbstractMongoClientConfiguration{//
 		converters.add(new OffsetDateTimeWriteConverter());
 		converters.add(new LocalDateTimeReadConverter());
 		converters.add(new LocalDateTimeWriteConverter());
-		converters.add(new UserWriterConverter());
+//		converters.add(new UserWriterConverter());
 		return new MongoCustomConversions(converters);
 	}
 	
@@ -118,20 +118,20 @@ public class MongoConfig  extends AbstractMongoClientConfiguration{//
 	
 	
 	
-	@Bean
-    public UserCascadeSaveMongoEventListener userCascadingMongoEventListener() {
-        return new UserCascadeSaveMongoEventListener();
-    }
-
-    @Bean
-    public CascadeSaveMongoEventListener cascadingMongoEventListener() {
-        return new CascadeSaveMongoEventListener();
-    }
-    
-    @Bean
-    public MongoTransactionManager transactionManager(MongoDatabaseFactory dbFactory) {
-        return new MongoTransactionManager(dbFactory);
-    }
+//	@Bean
+//    public UserCascadeSaveMongoEventListener userCascadingMongoEventListener() {
+//        return new UserCascadeSaveMongoEventListener();
+//    }
+//
+//    @Bean
+//    public CascadeSaveMongoEventListener cascadingMongoEventListener() {
+//        return new CascadeSaveMongoEventListener();
+//    }
+//    
+//    @Bean
+//    public MongoTransactionManager transactionManager(MongoDatabaseFactory dbFactory) {
+//        return new MongoTransactionManager(dbFactory);
+//    }
 	
 	
 	

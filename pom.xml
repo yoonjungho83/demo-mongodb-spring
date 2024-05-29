@@ -111,6 +111,10 @@
 			                    <processor>org.springframework.data.mongodb.repository.support.MongoAnnotationProcessor</processor>
 			                </processors>    
 			            </configuration>
+			            <!--<configuration>
+			              <outputDirectory>target/generated-sources/java</outputDirectory>
+			              <processor>com.querydsl.apt.morphia.MorphiaAnnotationProcessor</processor>
+			            </configuration>-->
 			        </execution>
 			    </executions>
 			</plugin>

@@ -11,51 +11,51 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.demo.mongo.model.entity.mongo.Address;
 import com.demo.mongo.model.entity.mongo.UserMst;
-import com.demo.mongo.service.MongoService;
+import com.demo.mongo.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/mg")
 @RequiredArgsConstructor
-public class MongoController {
+public class UserController {
 
-	private final MongoService mongoService;
+	private final UserService userService;
 	
 	
 	@GetMapping("/users")
 	public ResponseEntity<?> getUsers() {
-		Object obj = mongoService.getUsers();
+		Object obj = userService.getUsers();
 		return ResponseEntity.ok(obj);
 	}
 	@GetMapping("/user/{userId}")
 	public ResponseEntity<?> getUser(@PathVariable("userId") String userId) {
-		Object obj = mongoService.getUser(userId);
+		Object obj = userService.getUser(userId);
 		return ResponseEntity.ok(obj);
 	}
 	
 	@GetMapping("/getUserPaging")
 	public ResponseEntity<?> getUserPaging() {
-		Object obj = mongoService.getUserPaging();
+		Object obj = userService.getUserPaging();
 		return ResponseEntity.ok(obj);
 	}
 	
 	@PostMapping("/saveUser")
 	public ResponseEntity<?> saveUser(@RequestBody UserMst user) {
-		Object obj = mongoService.saveUser(user);
+		Object obj = userService.saveUser(user);
 		return ResponseEntity.ok(obj);
 	}
 	
 	@PostMapping("/saveUsers")
 	public ResponseEntity<?> saveUsers() {
-		Object obj = mongoService.saveUsers();
+		Object obj = userService.saveUsers();
 		return ResponseEntity.ok(obj);
 	}
 	
 	//user 수정
 	@PutMapping("/setUser")
 	public ResponseEntity<?> setUser() {
-		Object obj = mongoService.setUser();
+		Object obj = userService.setUser();
 		return ResponseEntity.ok(obj);
 	}
 	
@@ -64,7 +64,7 @@ public class MongoController {
 		System.out.println("allDeleteUser");
 		
 		
-		mongoService.allDeleteUser();
+		userService.allDeleteUser();
 		
 		return "succ";
 	}
@@ -73,7 +73,7 @@ public class MongoController {
 		System.out.println("deleteUser");
 		
 		
-		mongoService.deleteUser(userId);
+		userService.deleteUser(userId);
 		
 		return "succ";
 	}

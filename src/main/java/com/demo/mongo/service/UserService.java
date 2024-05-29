@@ -34,9 +34,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MongoService {
+public class UserService {
 
 	private final UserMstRepository userMstRepository;
+//	private final UserMstRepositoryImpl userMstRepository;
 	private final MongoTemplate mongoTemplate;
 	private final DataUtil dataUtil;
 	
@@ -70,23 +71,7 @@ public class MongoService {
 	
 	
 	
-	private Criteria getCriteria(String key , Object val) {
-		Criteria c = new Criteria(key);
-		c.is(val);
-		return c;
-	}
 	
-	//특정 조건 query 생성
-	private Query getQuery(String key , Object val) {
-		Query query = new Query(getCriteria(key,val));
-		return query;
-	}
-	
-	private Query getQuery(Object c) {
-		Query query = new Query();
-		query.addCriteria((CriteriaDefinition)c);
-		return query;
-	}
 	
 	
 	
@@ -98,6 +83,7 @@ public class MongoService {
 	}
 	
 	public Object getUserPaging() {
+		
 		
 		PageRequest page = PageRequest.of(2, 30 , Sort.by("createDate").descending());
 		LocalDateTime sdate = LocalDateTime.now().minusDays(5);
@@ -120,7 +106,7 @@ public class MongoService {
 	//조회 get mg/user/{userId}
 	public Object getUser(String userId) {
 		//특정 조건 조회1
-		List<UserMst> list1 = mongoTemplate.find(getQuery("userId",userId),UserMst.class);
+		List<UserMst> list1 = mongoTemplate.find(dataUtil.getQuery("userId",userId),UserMst.class);
 		//특정 조건 조회2
 		List<UserMst> list2 = userMstRepository.findByUserId(userId);
 		
@@ -130,7 +116,7 @@ public class MongoService {
 //		Criteria("title").isEqualTo("Moby-Dick")
 //		  .and("price").lt(950)
 		//gte 크거나같음 lte 작거나 같음 
-		Query q = getQuery(Criteria.where("age").gte(300));//.and("userId").equals("user1")
+		Query q = dataUtil.getQuery(Criteria.where("age").gte(300));//.and("userId").equals("user1")
 		
 		List<UserMst> list3 = mongoTemplate.find(q, UserMst.class);
 		;
@@ -189,19 +175,20 @@ public class MongoService {
 		
 		
 		/******** 대용량 쿼리 21만건 select start  *********/
-//		log.info("Mamager start 약 21만건 40MB로 추정 총 조회시간 3분정도 걸림. {}" , LocalDateTime.now());
-//		BooleanExpression whereClaus4 =
+		log.info("Mamager start 약 21만건 40MB로 추정 총 조회시간 2분정도 걸림. {}" , LocalDateTime.now());
+		BooleanExpression whereClaus4 =
 //				qUserMst.roleList.any().roleName.eq("MANAGER")
-////				 qUserMst.roleList.any().useYn.eq("Y")
-////            .and(qUserMst.roleList.any().roleName.eq("MANAGER")  )
-//				;
-//		Iterable<UserMst> inter4 =  userMstRepository.findAll(whereClaus4);
-//		
-//		log.info("Mamager end {}" , LocalDateTime.now());
-//		
-//		List<Object>  itList11 =  dataUtil.iteratorToList(inter4);
-//		
-//		log.info("Mamager change {}" , LocalDateTime.now());
+				qUserMst.roleList.any().roleName.eq("MANAGER")
+//				 qUserMst.roleList.any().useYn.eq("Y")
+//            .and(qUserMst.roleList.any().roleName.eq("MANAGER")  )
+				;
+		Iterable<UserMst> inter4 =  userMstRepository.findAll(whereClaus4);
+		
+		log.info("Mamager end {}" , LocalDateTime.now());
+		
+		List<Object>  itList11 =  dataUtil.iteratorToList(inter4);
+		
+		log.info("Mamager change {}" , LocalDateTime.now());
 		/******** 대용량 쿼리 21만건 select end  *********/
 		
 		List<String> userList = Arrays.asList(
@@ -242,14 +229,14 @@ public class MongoService {
 		Address addr1 = Address.builder().addr("화성"+idx1).zipcode("16089").desc("test").addrDetail("203/2304").build();
 		user = UserMst.builder()
 				.userId("user"+idx1)
-				.address(addr1)
+//				.address(addr1)
 				.userName("윤정호"+idx1).birth("19990101").phone("01042467729").age(1)
 				.build();
 		
 		Address addr2 = Address.builder().addr("화성"+idx2).zipcode("16089").desc("test").addrDetail("203/2304").build();
 		UserMst user2 = UserMst.builder()
 				.userId("user"+idx2)
-				.address(addr2)
+//				.address(addr2)
 				.birth("19990101").userName("윤정호"+idx2).phone("01042467729").age(1)
 				.build();
 		
@@ -266,15 +253,26 @@ public class MongoService {
 		return result;
 	}
 	
+	List<String> cityList = Arrays.asList("서울","경기","인천","강원도","경상남도","경상북도","전라남도","전라북도","제주도","충청남도","충청북도");
 	
 	public Object saveUsers() {
 		long cnt = userMstRepository.count();
 		log.info("user cnt = {}",cnt);
-		for (int i = 0; i < 1000000; i++) {
-			Address addr1 = Address.builder().addr("화성"+(cnt+i)).zipcode("16089").desc("test").addrDetail("203/2304").build();
+		for (int i = 0; i < 10000; i++) {
+			int idx = (int)Math.ceil(Math.random()*10);
+			
+			Address addr1 = Address.builder()
+					.gubun("home")
+					.city(cityList.get(idx))
+					.addr("test addr")
+					.addrDetail("test addr detail 203/2304")
+					.zipcode("16089")
+					.desc("test")
+					.build();
+			
 			UserMst user = new UserMst();
 			user.setUserId("user"+(cnt+i));
-			user.setAddress(addr1);
+			user.getAddrList().add(addr1);
 			user.setUserName("윤정호"+(cnt+i));
 			user.setBirth("19990102");
 			user.setPhone("01042467729");
@@ -314,7 +312,7 @@ public class MongoService {
 	//수정
 	public Object setUser() {
 		
-		Query query = getQuery("userId", "user1");
+		Query query = dataUtil.getQuery("userId", "user1");
 		Update update = new Update();
 //			update.inc("age", 100);
 		update.set("age", 300);
@@ -332,9 +330,10 @@ public class MongoService {
 	//특정 유저 삭제
 	public DeleteResult deleteUser(String userId) {
 		//삭제방법 1
-		DeleteResult d1 = mongoTemplate.remove(getQuery("userId",userId), "UserMst");
+		DeleteResult d1 = mongoTemplate.remove(dataUtil.getQuery("userId",userId), "UserMst");
 		return d1;
 	}
+	
 	
 	
 	
