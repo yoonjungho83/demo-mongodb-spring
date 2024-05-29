@@ -1,9 +1,8 @@
 package com.demo.mongo.service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.Month;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.bson.Document;
@@ -369,10 +368,11 @@ public class OrderService {
 		
 		
 		
-		
+		LocalDateTime date = LocalDateTime.now().plusMonths(1).minusDays(4);
+		Date date2 = new Date();//Date.UTC(2024, 6, 25, 0, 0, 0);
 		
 		AggregationBuilder orderGroup = new AggregationBuilder(mongoTemplate);
-		Criteria where10 = dataUtil.getCriteria("gte","reservationDate", LocalDate.of( 2024,Month.JUNE,5 )); 
+		Criteria where10 = dataUtil.getCriteria("gte","reservationDate", date2); 
 		Criteria where11 = dataUtil.getCriteria("eq","isReservation"   , "N"); 
 		Criteria where12 = dataUtil.getCriteria("eq","iscomplete"      , "N"); 
 		
@@ -407,6 +407,11 @@ public class OrderService {
 	/*
 	 *
 	 
+	 
+	 LocalDateTime startDateTime = LocalDateTime.now().minusDays(30);
+    Instant startInstant = startDateTime.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+    Criteria c = Criteria.where("createdDate").gt(Date.from(startInstant));
+    template.aggregate(Aggregation.newAggregation(Aggregation.match(c)), "TestJavaTime", TestJavaTime.class);
 	 
 	 
 	  Aggregation aggri = 
