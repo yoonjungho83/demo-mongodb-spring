@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.bson.Document;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -16,8 +14,11 @@ import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.aggregation.MatchOperation;
 import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
 import org.springframework.data.mongodb.core.aggregation.SortOperation;
+import org.springframework.data.mongodb.core.aggregation.UnwindOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Component;
+
+import com.demo.mongo.common.DataUtil;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class AggregateBuilder {
 	private MongoTemplate mongoTemplate;
 	
 	private List<AggregationOperation> operationList;
+	private DataUtil dataUtil;
 
 	
 	public AggregationOperation aggregateLookup() {
@@ -81,11 +83,11 @@ public class AggregateBuilder {
 		 new Document("$expr"
 					 ,new Document( "$and"
 								  , List.of( new Document("$regexMatch",
-										                   new Document("input", "$tenant_code")
-										                   		.append("regex", "T")
+										                   new Document("input", "$userId")
+										                   		.append("regex", "user0")
 										                   		.append("options","i")	
 								                          )
-								           , new Document("$eq", Arrays.asList("$company.company_code", "COM_1"))
+								           , new Document("$eq", Arrays.asList("$roleList.roleName", "ADMIN"))
 								            )
 								   )
 		             )
@@ -106,8 +108,8 @@ public class AggregateBuilder {
 	
 	public MatchOperation mongoCriteria() {
 		List<Criteria> criteriaList = new ArrayList<>();
-		criteriaList.add(Criteria.where("tenant_code").regex("T", "i"));
-		criteriaList.add(Criteria.where("company.company_code").is("COM_1"));
+		criteriaList.add(Criteria.where("userId").regex("1000", "i"));
+		criteriaList.add(Criteria.where("userId").is("user1"));
 		MatchOperation matchOperation = Aggregation.match(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
 		
 		return matchOperation;
@@ -142,37 +144,64 @@ public class AggregateBuilder {
 		return projectionOperation;
 	}
 	
-	/** mongodb aggregation 실행 : 실행 후 aggregatePropList는 초기화 함.
-	 * @param entityClass : 리턴받을 dto
-	 * @param colectionName : 기준 table명
-	 * @return 조인 및 집계 결과 리스트.
-	 */
-	public <T> List<T> aggregate(String collectionName, Class<T> entityClass) {
+	
+	
+	//mongoDB aggregate join code 
+	public void execAggregate() {
+		List<AggregationOperation> operationList = new ArrayList<>();
 		
-		List<AggregationOperation> operations = new ArrayList<>();
-		ProjectionOperation projectionOperation = null;
+		//조인
+		AggregationOperation lookupOperation = 
+		(context) -> new Document
+		("$lookup",
+		 new Document("from", "RoleMst")
+		 	.append("let", new Document("roleName1", "$roleName1"))
+		    .append( "pipeline"
+		    	   , List.of( new Document("$match",
+		    			  		new Document("$expr",
+		                           new Document( "$and"
+		                        		       , List.of(new Document( "$eq"
+		                            		                         , List.of("$roleName", "$$roleName1")
+		                            		                         )
+		                                                )
+		                        		       )
+		                        )
+		                      )
+		                   )
+		    	   )
+		    .append("as", "roleInfo")
+		);
+		operationList.add(lookupOperation);
+		
+		//filtering
+		Criteria where1 = dataUtil.getCriteria("ne","roleList", "[]"); //where roleList is null
+		Criteria where2 = dataUtil.getCriteria("eq","roleList.roleName", "USER");
+		MatchOperation matchOperation = Aggregation
+				.match(new Criteria().andOperator(Arrays.asList(where1,where2).toArray(new Criteria[0])));
+		operationList.add(matchOperation);
+		
+		//전개
+		UnwindOperation unwindOperation = Aggregation.unwind("RoleMst", true);
+		operationList.add(unwindOperation);
+		
+		//정렬
+		SortOperation sortOperation = Aggregation.sort(Sort.by("userId").ascending());
+		operationList.add(sortOperation);
+		
+		Aggregation aggregation = 
+			Aggregation.newAggregation(operationList.toArray(new AggregationOperation[0]));
 
-	    // ProjectionOperation 맨 뒤로 이동
-	    for (AggregationOperation operation : operationList) {
-	        if (operation instanceof ProjectionOperation) projectionOperation = (ProjectionOperation)operation;
-	        else operations.add(operation);
-	    }
-	    operations.add(projectionOperation);
-
-	    Aggregation aggregation = Aggregation.newAggregation(operations.toArray(new AggregationOperation[0]));
-
-	    log.info("aggregation ====> {}", aggregation);
-	    
-	    return mongoTemplate.aggregate(aggregation, collectionName, entityClass).getMappedResults();
+		log.info("aggregate = {}", aggregation);
+		 
+		
+		List<Object> resultList =  
+			mongoTemplate.aggregate(aggregation, "UserMst", Object.class).getMappedResults();
+		
+		
+		System.out.println("resultList.size = " + resultList.size());
+		System.out.println("resultList= " + resultList);
 	}
 	
 	
-	public <T> PageImpl<T> aggregate(Pageable pageable, String collectionName, Class<T> entityClass) {
-
-	    List<T> result = aggregate(collectionName, entityClass);
-	    final int start = (int) pageable.getOffset();
-	    final int end = Math.min((start + pageable.getPageSize()), result.size());
-	    return new PageImpl<>(result.subList(start, end), pageable, result.size());
-	}
 	
 }

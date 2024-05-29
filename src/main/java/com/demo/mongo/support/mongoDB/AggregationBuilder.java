@@ -53,10 +53,6 @@ public class AggregationBuilder {
 		this.operationList.add(lookupOperation);
 	}
 
-//	public void innerUnwind(String field, boolean preserveNullAndEmptyArrays) {
-//		UnwindOperation unwindOperation = Aggregation.unwind(field, preserveNullAndEmptyArrays);
-//		this.operationList.add(unwindOperation);
-//	}
 	
 	
 	public AggregationBuilder unwind(String field, boolean preserveNullAndEmptyArrays) {
@@ -102,20 +98,10 @@ public class AggregationBuilder {
 	public <T> List<T> aggregate(String collectionName, Class<T> entityClass) {
 
 		List<AggregationOperation> operations = new ArrayList<>();
-//		ProjectionOperation projectionOperation = null;
 
-		// ProjectionOperation 맨 뒤로 이동
 		for (AggregationOperation operation : operationList) {
-			
 			operations.add(operation);
-			
-//			if (operation instanceof ProjectionOperation)
-//				projectionOperation = (ProjectionOperation) operation;
-//			else
-//				operations.add(operation);
 		}
-//		if(projectionOperation != null)
-//			operations.add(projectionOperation);	
 
 		Aggregation aggregation = Aggregation.newAggregation(operations.toArray(new AggregationOperation[0]));
 

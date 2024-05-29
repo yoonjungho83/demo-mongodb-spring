@@ -276,7 +276,7 @@ public class UserService {
 			user.setUserName("윤정호"+(cnt+i));
 			user.setBirth("19990102");
 			user.setPhone("01042467729");
-			user.setAge(2);
+			user.setAge((int)Math.random()*100);
 			user.setDesc(desc);
 			
 			//role 삽입
