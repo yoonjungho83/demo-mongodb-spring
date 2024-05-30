@@ -79,26 +79,29 @@ public class UserService {
 		//모두 조회
 		List<UserMst> list = userMstRepository.findAll();
 		
-		return list;
+		return "성공 = " + list.size();
 	}
 	
-	public Object getUserPaging() {
+	public Object getUserPaging(Integer startP , Integer dataCnt , Integer minusDate) {
 		
+		if(startP == null )     startP  = 0;
+		if(dataCnt == null)     dataCnt = 10;
+		if(minusDate == null) minusDate = -10;
 		
-		PageRequest page = PageRequest.of(2, 30 , Sort.by("createDate").descending());
-		LocalDateTime sdate = LocalDateTime.now().minusDays(5);
+		PageRequest page = PageRequest.of(startP, dataCnt , Sort.by("createDate").descending());
+		LocalDateTime sdate = LocalDateTime.now().minusDays(minusDate);
 		LocalDateTime edate = LocalDateTime.now();//.minusDays(1)
 		log.info("sdate = {}" , sdate);
 		log.info("edate = {}" , edate);
 		//모두 조회
-		Page<UserMst> list = userMstRepository.findAll(
-							qUserMst.createDate.after(sdate)
-							.and(qUserMst.createDate.before(edate))
-							,page);
+		Page<UserMst> list = 
+			userMstRepository.findAll(
+				qUserMst.createDate.after(sdate).and(qUserMst.createDate.before(edate))
+			   ,page
+			);
 		
 		log.info("page list = {}" , list);
 		
-		Query query = new Query();
 		
 		return list;
 	}
@@ -124,9 +127,11 @@ public class UserService {
 		
 		//특정조건 조회 3 : querydsl >> findOne인 경우는 결과가 list인 경우 error
 		Optional<UserMst> opt = 
-				userMstRepository.findOne(
-								 qUserMst.userId.eq("user1")
-							.and(qUserMst.age.eq(300)));
+			userMstRepository.findOne
+			(
+				  qUserMst.userId.eq("user1")
+			 .and(qUserMst.age.eq(300))
+			);
 		
 		if(opt.isPresent()) {
 			log.info("opt = {}",  opt.get().toString());
@@ -175,7 +180,7 @@ public class UserService {
 		
 		
 		/******** 대용량 쿼리 21만건 select start  *********/
-		log.info("Mamager start 약 21만건 40MB로 추정 총 조회시간 2분정도 걸림. {}" , LocalDateTime.now());
+		//log.info("Mamager start 약 21만건 40MB로 추정 총 조회시간 2분정도 걸림. {}" , LocalDateTime.now());
 		BooleanExpression whereClaus4 =
 //				qUserMst.roleList.any().roleName.eq("MANAGER")
 				qUserMst.roleList.any().roleName.eq("MANAGER")
@@ -215,13 +220,6 @@ public class UserService {
 		return itList;
 	}
 	
-	
-	public void getGroupbyUsers() {
-		
-		
-		
-		
-	}
 	
 	//유저 저장
 	public Object saveUser(UserMst user) {

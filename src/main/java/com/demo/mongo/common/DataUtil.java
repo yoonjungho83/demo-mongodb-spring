@@ -49,8 +49,10 @@ public class DataUtil {
 		Criteria c = new Criteria(key);
 		if(val instanceof Boolean) {
 			c.exists((boolean)val);
+		}else {
+			c.is(val);
 		}
-		c.is(val);
+		
 		return c;
 	}
 	

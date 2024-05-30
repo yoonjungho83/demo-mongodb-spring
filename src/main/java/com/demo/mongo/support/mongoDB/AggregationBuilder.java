@@ -8,6 +8,8 @@ import org.bson.Document;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.AddFieldsOperation;
+import org.springframework.data.mongodb.core.aggregation.AddFieldsOperation.AddFieldsOperationBuilder;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.aggregation.GroupOperation;
@@ -41,6 +43,12 @@ public class AggregationBuilder {
 		
 		return this;
 	}
+	
+//	public AggregationBuilder addField() {
+//		AddFieldsOperationBuilder af= Aggregation.addFields();
+//		operationList.add(af);
+//		return this;
+//;	}
 
 	public AggregationBuilder group(GroupOperation groupOperation) {
 		

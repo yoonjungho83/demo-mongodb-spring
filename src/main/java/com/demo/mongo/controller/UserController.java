@@ -34,9 +34,12 @@ public class UserController {
 		return ResponseEntity.ok(obj);
 	}
 	
-	@GetMapping("/getUserPaging")
-	public ResponseEntity<?> getUserPaging() {
-		Object obj = userService.getUserPaging();
+	@GetMapping("/getUserPaging/{startP}/{dataCnt}/{minusDate}")
+	public ResponseEntity<?> getUserPaging(@PathVariable("startP") Integer startP 
+										 , @PathVariable("dataCnt") Integer dataCnt 
+										 , @PathVariable("minusDate") Integer minusDate) 
+	{
+		Object obj = userService.getUserPaging(startP,dataCnt,minusDate);
 		return ResponseEntity.ok(obj);
 	}
 	

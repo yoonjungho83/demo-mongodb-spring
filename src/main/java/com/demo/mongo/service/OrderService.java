@@ -1,6 +1,8 @@
 package com.demo.mongo.service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -145,10 +147,7 @@ public class OrderService {
 	}
 	
 	
-	//주문내역 조회
-	public void getOrder() {
-		
-	}
+	
 	
 	//주문내역 통계 조회
 	public String getGrouppingOrder() {
@@ -368,35 +367,50 @@ public class OrderService {
 		
 		
 		
-		LocalDateTime date = LocalDateTime.now().plusMonths(1).minusDays(4);
-		Date date2 = new Date();//Date.UTC(2024, 6, 25, 0, 0, 0);
+		
+		LocalDateTime startDateTime = LocalDateTime.now().plusDays(6);
+	    Instant startInstant = startDateTime.atZone(ZoneId.systemDefault()).toInstant();
+//		LocalDateTime date = LocalDateTime.now().plusMonths(1).minusDays(4);
+//		Date date2 = new Date();//Date.UTC(2024, 6, 25, 0, 0, 0);
 		
 		AggregationBuilder orderGroup = new AggregationBuilder(mongoTemplate);
-		Criteria where10 = dataUtil.getCriteria("gte","reservationDate", date2); 
+		Criteria where10 = dataUtil.getCriteria("gte","reservationDate", startInstant); 
 		Criteria where11 = dataUtil.getCriteria("eq","isReservation"   , "N"); 
 		Criteria where12 = dataUtil.getCriteria("eq","iscomplete"      , "N"); 
 		
 		List<Object> orderInfoGrp = 
-			   orderGroup.match(Arrays.asList(where10,where11,where12))
+			   orderGroup.match(Arrays.asList(where11,where12))//where10,
 				         .unwind("$prodList", true)
+//				         .project(Aggregation.project()
+//				        		 .andExclude("_id")
+//				        		 .and("orderNum"               ).as("orderNum"     )
+//				        		 .and("totPrice"               ).as("totPrice"     )
+//			             		 .and("$prodList.prodNm"       ).as("prodName"     )
+//			             		 .and("$prodList.orgPrice"     ).as("orgPrice"     )
+//			             		 .and("$prodList.cnt"          ).as("orderCnt"     )
+//			             		 .and("$prodList.discountPrice").as("discountPrice")
+//			             		 .and("$prodList.discountRate" ).as("discountRate" )
+//			             		 .and("$prodList.salePrice"    ).as("salePrice"    )
+//			             		 .and("$prodList.saleTotPrice" ).as("saleTotPrice" )
+//					     )
+//				         .group(Aggregation.group("$prodName" )
+//				            			   .count().as("sumCnt")
+//				            			   .max("$discountPrice").as("fruitPrice")
+//				            			   .sum("$saleTotPrice").as("saleTotPrice")
+//				         )
+				         .group(Aggregation.group("$prodList.prodNm" )
+				        		 .count().as("sumCnt")
+				        		 .max("$prodList.discountPrice").as("fruitPrice")
+				        		 .sum("$prodList.saleTotPrice").as("saleTotPrice")
+				        		 )
 				         .project(Aggregation.project()
-				        		 .andExclude("_id")
-				        		 .and("orderNum"               ).as("orderNum"     )
-				        		 .and("totPrice"               ).as("totPrice"     )
-			             		 .and("$prodList.prodNm"       ).as("prodName"     )
-			             		 .and("$prodList.orgPrice"     ).as("orgPrice"     )
-			             		 .and("$prodList.cnt"          ).as("orderCnt"     )
-			             		 .and("$prodList.discountPrice").as("discountPrice")
-			             		 .and("$prodList.discountRate" ).as("discountRate" )
-			             		 .and("$prodList.salePrice"    ).as("salePrice"    )
-			             		 .and("$prodList.saleTotPrice" ).as("saleTotPrice" )
-					     )
-				         .group(Aggregation.group("$prodName" )
-				            			   .count().as("sumCnt")
-				            			   .max("$discountPrice").as("fruitPrice")
-				            			   .sum("$saleTotPrice").as("saleTotPrice")
+			        		 .andExclude("_id")
+			        		 .and("_id"   ).as("prodNm"     )
+			        		 .and("fruitPrice"   ).as("fruitPrice"     )
+		             		 .and("saleTotPrice" ).as("saleTotPrice"     )
+		             		 .and("sumCnt"       ).as("sumCnt"     )
 				         )
-				         .sort(Aggregation.sort(Sort.by("_id.prodName").ascending()))
+				         .sort(Aggregation.sort(Sort.by("prodNm").ascending()))
 				         .aggregate("OrderInfo", Object.class);
 		
 		log.info("mongoDBGroupSample orderInfoGrp size = {} /  result = {}" , orderInfoGrp.size() ,orderInfoGrp);
