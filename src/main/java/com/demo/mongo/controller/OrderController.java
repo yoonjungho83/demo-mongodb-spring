@@ -21,7 +21,7 @@ public class OrderController {
 	}
 	@GetMapping("/sample/createReservation")
 	public String createReservation() {
-		return orderService.createReservation(null);
+		return orderService.createReservation();
 	}
 	
 	@GetMapping("/sample/setTotPrice")

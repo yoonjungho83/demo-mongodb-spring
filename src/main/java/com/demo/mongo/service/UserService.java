@@ -18,7 +18,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.demo.mongo.common.DataUtil;
+import com.demo.mongo.common.MongoUtil;
 import com.demo.mongo.model.entity.mongo.Address;
 import com.demo.mongo.model.entity.mongo.QUserMst;
 import com.demo.mongo.model.entity.mongo.RoleDetail;
@@ -39,7 +39,7 @@ public class UserService {
 	private final UserMstRepository userMstRepository;
 //	private final UserMstRepositoryImpl userMstRepository;
 	private final MongoTemplate mongoTemplate;
-	private final DataUtil dataUtil;
+	private final MongoUtil dataUtil;
 	
 	
 	QUserMst  qUserMst = QUserMst.userMst;  
@@ -83,10 +83,6 @@ public class UserService {
 	}
 	
 	public Object getUserPaging(Integer startP , Integer dataCnt , Integer minusDate) {
-		
-		if(startP == null )     startP  = 0;
-		if(dataCnt == null)     dataCnt = 10;
-		if(minusDate == null) minusDate = -10;
 		
 		PageRequest page = PageRequest.of(startP, dataCnt , Sort.by("createDate").descending());
 		LocalDateTime sdate = LocalDateTime.now().minusDays(minusDate);

@@ -1,11 +1,13 @@
 package com.demo.mongo.common;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
@@ -15,7 +17,7 @@ import org.springframework.stereotype.Component;
 import com.demo.mongo.support.mongoDB.DocumentBuilder;
 
 @Component
-public class DataUtil {
+public class MongoUtil {
 
 	
 	public List<Object> iteratorToList(Iterable t ) {
@@ -74,5 +76,23 @@ public class DataUtil {
 	}
 	public DocumentBuilder on(){
 		return new DocumentBuilder();
+	}
+	
+	
+	/* mongoDB data 조회시 해당 함수로 변환하여 조회
+	 * 아래는 변환된 예
+	 * { "$match" : { "$and" : [{ "reservationDate" : { "$gte" : { "$date" : "2024-06-05T01:21:49.066Z"}}}]}}
+	 *  */
+	public Date localDateTimeToDate(LocalDateTime localdDateTime) {
+		
+		Instant instant = localdDateTime.atZone(ZoneId.systemDefault()).toInstant();    
+		Date date = Date.from(instant);
+		return date;
+	}
+	
+	/* mongoDB data 조회시 해당 함수로 변환하여 조회 */
+	public Date offsetDateTimeToDate(OffsetDateTime offsetDateTime) {
+		
+		return Date.from(offsetDateTime.toInstant());
 	}
 }

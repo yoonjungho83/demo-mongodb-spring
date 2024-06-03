@@ -9,9 +9,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.AddFieldsOperation;
-import org.springframework.data.mongodb.core.aggregation.AddFieldsOperation.AddFieldsOperationBuilder;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators;
+import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators.Subtract;
 import org.springframework.data.mongodb.core.aggregation.GroupOperation;
 import org.springframework.data.mongodb.core.aggregation.MatchOperation;
 import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
@@ -44,11 +45,18 @@ public class AggregationBuilder {
 		return this;
 	}
 	
-//	public AggregationBuilder addField() {
-//		AddFieldsOperationBuilder af= Aggregation.addFields();
-//		operationList.add(af);
-//		return this;
-//;	}
+	public AggregationBuilder addField() {
+		
+//		Aggregation.addFields().addField("time_dist")
+		AddFieldsOperation af = 
+			Aggregation.addFields()
+			           .addField("")
+			           .withValue(ArithmeticOperators.Abs
+			        		                         .absoluteValueOf(Subtract.valueOf("timeStampTemp").subtract("a.date"))).build();
+		operationList.add(af);
+		return this;
+	}
+	
 
 	public AggregationBuilder group(GroupOperation groupOperation) {
 		

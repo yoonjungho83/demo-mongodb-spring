@@ -18,7 +18,7 @@ import org.springframework.data.mongodb.core.aggregation.UnwindOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Component;
 
-import com.demo.mongo.common.DataUtil;
+import com.demo.mongo.common.MongoUtil;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +33,7 @@ public class AggregateBuilder {
 	private MongoTemplate mongoTemplate;
 	
 	private List<AggregationOperation> operationList;
-	private DataUtil dataUtil;
+	private MongoUtil dataUtil;
 
 	
 	public AggregationOperation aggregateLookup() {

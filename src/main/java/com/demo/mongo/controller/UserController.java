@@ -39,6 +39,10 @@ public class UserController {
 										 , @PathVariable("dataCnt") Integer dataCnt 
 										 , @PathVariable("minusDate") Integer minusDate) 
 	{
+		
+		if(startP == null )     startP  = 0;
+		if(dataCnt == null)     dataCnt = 10;
+		if(minusDate == null) minusDate = -10;
 		Object obj = userService.getUserPaging(startP,dataCnt,minusDate);
 		return ResponseEntity.ok(obj);
 	}
