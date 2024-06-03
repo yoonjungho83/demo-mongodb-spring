@@ -69,10 +69,10 @@ public class OrderService {
 	}
 	
 	//주문  생성
-	public String createReservation() {
+	public String createReservation(int createCnt) {
 		List<ProdMst> pList =  prodMstRepository.findAll();
 		
-		int loop = 500000;
+		int loop = createCnt;
 		
 
 		for (int i = 0; i < loop; i++) {

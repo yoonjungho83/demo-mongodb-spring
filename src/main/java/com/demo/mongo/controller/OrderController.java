@@ -1,6 +1,7 @@
 package com.demo.mongo.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,9 +20,9 @@ public class OrderController {
 	public void createProdMst() {
 		orderService.createProdMst();
 	}
-	@GetMapping("/sample/createReservation")
-	public String createReservation() {
-		return orderService.createReservation();
+	@GetMapping("/sample/createReservation/{createCnt}")
+	public String createReservation(@PathVariable("createCnt") int createCnt) {
+		return orderService.createReservation(createCnt);
 	}
 	
 	@GetMapping("/sample/setTotPrice")
