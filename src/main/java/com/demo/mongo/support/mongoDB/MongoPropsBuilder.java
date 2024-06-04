@@ -56,6 +56,17 @@ public class MongoPropsBuilder {
 		}
 		return this;
 	}
+	public MongoPropsBuilder delMongoProps(int idx) {
+		try {
+			if(idx < list.size() && idx >= 0) {
+				list.remove(idx);
+				curIdx = list.size()-1;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return this;
+	}
 	
 	
 	public MongoPropsBuilder newInsAppend(String type) {

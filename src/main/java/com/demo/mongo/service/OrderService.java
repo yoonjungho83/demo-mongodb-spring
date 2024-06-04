@@ -471,58 +471,54 @@ public class OrderService {
 	public void querySampleFinal() {
 		
 		//match type= 조건 / key = 컬럼 / val = 값
-		List<MongoProps>  matchParams = 
+		MongoPropsBuilder matchProps = 
 			mongoUtil.newMongoProp("gte").key("reservationDate").val(OffsetDateTime.now().minusDays(1))
-		             .newInsAppend("lte").key("reservationDate").val(OffsetDateTime.now())
-		             .getList();
+		             .newInsAppend("lte").key("reservationDate").val(OffsetDateTime.now());
+		
+		matchProps.delMongoProps(1);//기본 30만건에 unwind로 array가 풀리면서 100만건 이상일듯 -> 대략 12초 정도 걸림.
 		
 		//project type= [표현여부 또는 계산할 예약어] Y:표현 N:표현안함 예약어:dateToString,multiply / key = 컬럼 / val = 값
-		List<MongoProps> projectParams = 
-			mongoUtil.newMongoProp("Y")          .key("prodName")      .val("$prodList.prodNm")
+		MongoPropsBuilder projectProps = 
+			mongoUtil.newMongoProp("Y")           .key("prodName")      .val("$prodList.prodNm")
 			         .newInsAppend("Y")           .key("fCnt")          .val("$prodList.cnt")
 			         .newInsAppend("Y")           .key("salePrice")     .val("$prodList.discountPrice")
 			         .newInsAppend("dateToString").key("newReserveDate").val("%Y-%m-%d,$reservationDate")
-			         .newInsAppend("multiply")    .key("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice")
-			         .getList();
+			         .newInsAppend("multiply")    .key("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice") ;
 		
 		//group type= id:그룹핑할 내역 또는 함수명 / key = 신규로 보여줄 컬럼 설정 / val = 기존 컬럼 지정
-		List<MongoProps> groupParams = 
-			mongoUtil.newMongoProp("id")   .key("")           .val("$newReserveDate,$prodName")
+		MongoPropsBuilder groupProps = 
+			mongoUtil.newMongoProp("id")    .key("")           .val("$newReserveDate,$prodName")
 			         .newInsAppend("first") .key("reserveDate").val("$newReserveDate")
 			         .newInsAppend("first") .key("pname")      .val("$prodName")
 			         .newInsAppend("sum")   .key("fCnt")       .val("$fCnt")
 			         .newInsAppend("max")   .key("fPrice")     .val("$salePrice")
-			         .newInsAppend("sum")   .key("totPrice")   .val("$saleTotPrice")
-			         .getList();
+			         .newInsAppend("sum")   .key("totPrice")   .val("$saleTotPrice");
 		
-		List<MongoProps> projectParams2 = 
-				mongoUtil.newMongoProp("N") .key("id")            
+		MongoPropsBuilder projectProps2 = 
+				mongoUtil.newMongoProp("N")  .key("id")            
 				         .newInsAppend("Y")  .key("reserveDate").val(1L)
 				         .newInsAppend("Y")  .key("pname")      .val(1L)
 				         .newInsAppend("Y")  .key("fCnt")       .val(1L)
 				         .newInsAppend("Y")  .key("fPrice")     .val(1L)
-				         .newInsAppend("Y")  .key("totPrice")   .val(1L)
-				         .getList();
+				         .newInsAppend("Y")  .key("totPrice")   .val(1L);
 		
 		//sort type= 사용안함 안넣어도됨 / key = 정렬컬럼 / val = asc or desc 또는 1 또는 -1 
-		List<MongoProps> sortParams = 
-				mongoUtil.newMongoProp("").key("totPrice").val("asc")        
-				         .newInsAppend("").key("fPrice").val(-1)
-				         .getList();
+		MongoPropsBuilder sortProps = 
+				mongoUtil.newMongoProp("").key("reserveDate").val("asc")        
+				         .newInsAppend("").key("pname").val(1);
 		
 		
 		AggregationBuilder newBuilder = new AggregationBuilder(mongoTemplate);
-		List<Object> resList = 
-		newBuilder.setMatch(matchParams)
-		          .unwind("$prodList", true)
-		          .setProject(projectParams)
-		          .setGroup(groupParams)
-		          .setProject(projectParams2)
-		          .setSort(sortParams)
-		          .aggregate("OrderInfo", Object.class);
+		List<Object> resList = newBuilder.setMatch  (matchProps.getList())
+								         .unwind    ("$prodList", true)
+								         .setProject(projectProps.getList())
+								         .setGroup  (groupProps.getList())
+								         .setProject(projectProps2.getList())
+								         .setSort   (sortProps.getList())
+								         .aggregate ("OrderInfo", Object.class);
 		
 		
-		if(resList.size() < 100) {
+		if(resList.size() < 2000) {
 			log.info("resList.size = {} / resList = {}",resList.size(), resList);	
 		}else {
 			log.info("resList.size = {} ",resList.size());
