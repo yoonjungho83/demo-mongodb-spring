@@ -15,6 +15,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import com.demo.mongo.support.mongoDB.DocumentBuilder;
+import com.demo.mongo.support.mongoDB.MongoPropsBuilder;
 
 @Component
 public class MongoUtil {
@@ -77,6 +78,12 @@ public class MongoUtil {
 	public DocumentBuilder on(){
 		return new DocumentBuilder();
 	}
+	
+	public MongoPropsBuilder newMongoProp(String type){
+		return new MongoPropsBuilder(type);
+	}
+	
+	
 	
 	
 	/* mongoDB data 조회시 해당 함수로 변환하여 조회

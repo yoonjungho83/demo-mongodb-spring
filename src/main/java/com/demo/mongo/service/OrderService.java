@@ -1,11 +1,10 @@
 package com.demo.mongo.service;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.bson.Document;
 import org.springframework.data.domain.Sort;
@@ -20,6 +19,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import com.demo.mongo.common.MongoUtil;
+import com.demo.mongo.model.aggregation.MongoProps;
 import com.demo.mongo.model.entity.mongo.OrderInfo;
 import com.demo.mongo.model.entity.mongo.ProdMst;
 import com.demo.mongo.model.entity.mongo.QOrderInfo;
@@ -31,6 +31,7 @@ import com.demo.mongo.repository.OrderRepository;
 import com.demo.mongo.repository.ProdMstRepository;
 import com.demo.mongo.repository.UserMstRepository;
 import com.demo.mongo.support.mongoDB.AggregationBuilder;
+import com.demo.mongo.support.mongoDB.MongoPropsBuilder;
 import com.mongodb.client.result.UpdateResult;
 
 import lombok.Data;
@@ -46,7 +47,7 @@ public class OrderService {
 	private final ProdMstRepository prodMstRepository;
 	private final UserMstRepository userMstRepository;
 	private final MongoTemplate mongoTemplate;
-	private final MongoUtil monogUtil;
+	private final MongoUtil mongoUtil;
 	
 	private QUserMst qUserMst = QUserMst.userMst;
 	private QProdMst qProdMst = QProdMst.prodMst;
@@ -113,7 +114,7 @@ public class OrderService {
 				sp.setOrgPrice (prod.getOrgPrice());
 				sp.setSalePrice(prod.getSalePrice());
 				
-				double discount = adminCnt > 0 ? 20.0 : mngCnt > 0 ? 10.0 : 0.0  ;//할인율
+				double discount = adminCnt > 0 ? 0.2 : mngCnt > 0 ? 0.1 : 0.0  ;//할인율
 				int disPrice = (int) (prod.getSalePrice()*(1-discount));
 				sp.setDiscountRate(discount*100);
 				sp.setDiscountPrice(disPrice);
@@ -143,7 +144,7 @@ public class OrderService {
 			int totP = oi.getProdList().stream().mapToInt(x -> x.getSalePrice()).sum();
 			oi.setTotPrice(totP);
 			
-			Query query = monogUtil.getQuery("_id", oi.getId());
+			Query query = mongoUtil.getQuery("_id", oi.getId());
 			Update update = new Update();
 			update.set("totPrice", totP);
 			UpdateResult u = mongoTemplate.updateFirst(query, update, OrderInfo.class);
@@ -217,17 +218,17 @@ public class OrderService {
 	public void mongoDBJoinSample() {
 		
 		AggregationBuilder userLeftJoinRole = new AggregationBuilder(mongoTemplate);
-		Criteria ct1 = monogUtil.getCriteria("exists","roleList", false); //where roleList is null
-//		Criteria ct2 = monogUtil.getCriteria("eq","userId", "testAdmin1");//  and userId = 'testAdmin'
+		Criteria ct1 = mongoUtil.getCriteria("exists","roleList", false); //where roleList is null
+//		Criteria ct2 = mongoUtil.getCriteria("eq","userId", "testAdmin1");//  and userId = 'testAdmin'
 		List<Object> res1 = 
 		userLeftJoinRole.match(Arrays.asList(ct1))//,ct2
 		                .join( true //true : left outer join   / false : inner join 
 		                	 , "RoleMst"
 		                	   //[지역변수] userRoleName : 기준 테이블(UserMst) join key alias / roleName1 : join column 
-		                	 , monogUtil.let().andLet("roleName1", "$roleName1")
+		                	 , mongoUtil.let().andLet("roleName1", "$roleName1")
 //		                	                 .andLet("refId"    , "$refId")//조인 여러개 처리시 사용
 		                	   //roleName : ref 테이블(RoleMst) join key 
-		                	 , monogUtil.on().andOn("$eq", "$roleName", "$$roleName1")
+		                	 , mongoUtil.on().andOn("$eq", "$roleName", "$$roleName1")
 //		                	                .andOn("$eq", "$_id"     , "$$refId" )
 		                )
 		                .project(Aggregation.project()
@@ -276,8 +277,8 @@ public class OrderService {
 	public void mongoDBGroupSample1() {
 		
 		AggregationBuilder userGroup = new AggregationBuilder(mongoTemplate);
-		Criteria where1 = monogUtil.getCriteria("ne","roleList", "[]"); //where roleList is null
-//		Criteria where2 = monogUtil.getCriteria("eq","roleList.roleName", "USER"); //where roleList is null
+		Criteria where1 = mongoUtil.getCriteria("ne","roleList", "[]"); //where roleList is null
+//		Criteria where2 = mongoUtil.getCriteria("eq","roleList.roleName", "USER"); //where roleList is null
 		
 		List<Object> resGrp = 
 		userGroup.match(Arrays.asList(where1))//,where2
@@ -286,7 +287,7 @@ public class OrderService {
 		            			   .count().as("count")
 		            			   .sum("age").as("ageSum")
 		         )
-		         .match(Arrays.asList(monogUtil.getCriteria("exists","_id.roleName", true)))
+		         .match(Arrays.asList(mongoUtil.getCriteria("exists","_id.roleName", true)))
 		         .project(Aggregation.project()
 		        		 .andExclude("_id")
 		        		 .and("_id.roleName").as("roleName1")
@@ -332,17 +333,17 @@ public class OrderService {
 	 * ORDER BY A.PROD_NAME
 	 */
 	public void mongoDBGroupSample2() {
-		Date sDate = monogUtil.localDateTimeToDate(LocalDateTime.now());//.plusDays(2)
-		Date eDate = monogUtil.localDateTimeToDate(LocalDateTime.now().plusDays(5));
+		Date sDate = mongoUtil.localDateTimeToDate(LocalDateTime.now());//.plusDays(2)
+		Date eDate = mongoUtil.localDateTimeToDate(LocalDateTime.now().plusDays(5));
 		log.info("localDateTimeToDate sDate  === "+sDate);
 		log.info("localDateTimeToDate eDate  === "+eDate);
 		
 		AggregationBuilder orderGroup = new AggregationBuilder(mongoTemplate);
-		Criteria where10 = monogUtil.getCriteria("gte","reservationDate", sDate); 
-		Criteria where11 = monogUtil.getCriteria("lte","reservationDate", eDate); 
-//		Criteria where11 = monogUtil.getCriteria("eq","isReservation"   , "N"); 
-//		Criteria where12 = monogUtil.getCriteria("eq","iscomplete"      , "N"); 
-//		Criteria where13 = monogUtil.getCriteria("eq","prodList.prodNm"      , "키위"); 
+		Criteria where10 = mongoUtil.getCriteria("gte","reservationDate", sDate); 
+		Criteria where11 = mongoUtil.getCriteria("lte","reservationDate", eDate); 
+//		Criteria where11 = mongoUtil.getCriteria("eq","isReservation"   , "N"); 
+//		Criteria where12 = mongoUtil.getCriteria("eq","iscomplete"      , "N"); 
+//		Criteria where13 = mongoUtil.getCriteria("eq","prodList.prodNm"      , "키위"); 
 		
 		List<Object> orderInfoGrp = 
 			   orderGroup.match(Arrays.asList(where10,where11))//,,where11,where12
@@ -428,6 +429,325 @@ public class OrderService {
 	}
 	
 	
+	
+	
+	
+	public void setGroup(final List<MongoProps> conList) {
+		
+//		final List<MongoProps> tempList = conList != null? conList :
+//			mongoUtil.newParam("id")    .col("")           .val("$newReserveDate,$prodName")
+//			      .newInstance("first") .col("reserveDate").val("$newReserveDate")
+//			      .newInstance("first") .col("pname")      .val("$prodName")
+//			      .newInstance("sum")   .col("fCnt")       .val("$fCnt")
+//			      .newInstance("max")   .col("fPrice")     .val("$salePrice")
+//			      .newInstance("sum")   .col("totPrice")   .val("$saleTotPrice")
+//			      .getList();
+//		
+//		AggregationOperation group =
+//		context -> {
+//
+//			Document d = null;
+//			for(MongoPropsBuilder ap : tempList) 
+//			{
+//				if(ap.getType().equals("id")) 
+//				{
+//					List<String> idList = Arrays.asList(((String)ap.getVal()).split(","));
+//					if(idList == null || idList.size() == 0) continue;
+//					d = d == null? new Document("_id" , idList)
+//							         : d.append("_id" , idList);
+//				}
+//				else if(ap.getType().equals("sum")) 
+//				{
+//					d = d == null? new Document(ap.getCol() , new Document("$sum", ap.getVal()) )
+//							     :     d.append(ap.getCol() , new Document("$sum", ap.getVal()) );
+//				}else {
+//					d = d == null? new Document(ap.getCol() , new Document("$"+ap.getType() , ap.getVal()) )
+//						         :     d.append(ap.getCol() , new Document("$"+ap.getType() , ap.getVal()) );
+//				}
+//			}
+//			if(d == null) return null;
+//			
+//			return new Document("$project" , d);
+//		};
+		
+//		new Document("_id", Arrays.asList("$newReserveDate", "$prodName"))
+//		new Document
+//		("$group", new Document("_id", Arrays.asList(new Document("newReserveDate", "$newReserveDate")
+//				                                    ,new Document("prodName", "$prodName"))
+//				   )
+//		           .append("reserveDate", new Document("$first", "$newReserveDate"))
+//		           .append("pname", new Document("$first", "$prodName"))
+//		           .append("fCnt", new Document("$sum", "$fCnt"))
+//		           .append("fPrice", new Document("$max", "$salePrice"))
+//		           .append("totPrice", new Document("$sum", "$saleTotPrice"))
+//		);
+	}
+	
+	
+	/*  mongoDB query
+	 * [
+		  {$match: { $and : [{reservationDate : {$lte:ISODate('2024-06-03T17:13:27Z')}}
+		                    ,{reservationDate : {$gte:ISODate('2024-06-03T17:12:27Z')}}
+		                    ]
+		  }}
+		 ,{$unwind: {
+		   path: "$prodList",
+		   includeArrayIndex: 'string',
+		   preserveNullAndEmptyArrays: true
+		 }}
+		 ,{$project: {
+		   newReserveDate : {$dateToString:{format:"%Y-%m-%d", date : "$reservationDate"}},
+		   "prodName"     : "$prodList.prodNm",
+		   "fCnt"         : "$prodList.cnt",
+		   "salePrice"    : "$prodList.salePrice",
+		   "saleTotPrice" : {$multiply:["$prodList.cnt", "$prodList.discountPrice"]}
+		 }}
+		 ,{$group: {
+		   _id: ["$newReserveDate","$prodName"],
+		   reserveDate : {$first:"$newReserveDate"},
+		   pname :{$first:"$prodName"},
+		   fCnt: {
+		     $sum: "$fCnt"
+		   },
+		   fPrice: {
+		     $max: "$salePrice"
+		   },
+		   totPrice: {
+		     $sum: "$saleTotPrice"
+		   },
+		 }}
+		 ,{$project: {
+		   _id : 0,
+		   reserveDate: 1,
+		   pname      : 1,
+		   fCnt       : 1,
+		   fPrice     : 1,
+		   totPrice   : 1,
+		   totalPrice : {$multiply:["$fPrice","$fCnt"]}
+		 }}
+		 ,{$sort: {
+		   totalPrice: 1
+		 }} 
+	  ]
+	 * 
+	 * */
+	public void testAggre() {
+		
+		
+		AggregationOperation match = 
+		context -> 
+		new Document
+		("$match", new Document("$and", Arrays.asList(new Document("reservationDate", new Document("$lte", new java.util.Date(1717434807000L)))
+				                                     ,new Document("reservationDate", new Document("$gte", new java.util.Date(1717434747000L)))
+							            )
+				   )
+	    );
+		
+		AggregationOperation unwind = 
+		context -> 
+		new Document
+		("$unwind", new Document("path", "$prodList").append("includeArrayIndex", "string")
+				                                     .append("preserveNullAndEmptyArrays", true)
+		);
+		
+		
+		AggregationOperation project = 
+		context -> new Document
+	    ("$project", 
+			   new Document("newReserveDate", new Document("$dateToString", new Document("format", "%Y-%m-%d").append("date", "$reservationDate")))
+			          .append("prodName"    , "$prodList.prodNm")
+			          .append("fCnt"        , "$prodList.cnt")
+			          .append("salePrice"   , "$prodList.salePrice")
+			          .append("saleTotPrice", new Document("$multiply", Arrays.asList("$prodList.cnt", "$prodList.discountPrice")))
+		);
+		
+		AggregationOperation group =
+		context -> 
+		new Document
+		("$group", new Document("_id", Arrays.asList(new Document("newReserveDate", "$newReserveDate")
+				                                    ,new Document("prodName", "$prodName"))
+				   )
+		           .append("reserveDate", new Document("$first", "$newReserveDate"))
+		           .append("pname", new Document("$first", "$prodName"))
+		           .append("fCnt", new Document("$sum", "$fCnt"))
+		           .append("fPrice", new Document("$max", "$salePrice"))
+		           .append("totPrice", new Document("$sum", "$saleTotPrice"))
+		);
+		
+		AggregationOperation project2 =
+		context -> 
+		new Document
+		("$project", new Document("_id", 1L)
+						   .append("newReserveDate", "$_id.newReserveDate")
+				           .append("reserveDate", 1L)
+						   .append("pname", 1L)
+						   .append("fCnt", 1L)
+						   .append("fPrice", 1L)
+						   .append("totPrice", 1L)
+						   .append("totalPrice", new Document("$multiply", Arrays.asList("$fPrice", "$fCnt")))
+		);
+		
+		AggregationOperation sort = 
+		context -> new Document("$sort", new Document("totalPrice", 1L));
+		
+		List<AggregationOperation> optList = Arrays.asList(
+				match,
+				unwind,
+				project,
+				group,
+				project2,
+				sort);
+		
+		
+		Aggregation aggregation = Aggregation.newAggregation(optList.toArray(new AggregationOperation[0]));
+		log.info("aggregation = {}",aggregation);
+		List<Object> result =  mongoTemplate.aggregate(aggregation, "OrderInfo", Object.class).getMappedResults();
+		
+		log.info("result.size() = {} , result = {}",result.size() , result);
+		
+	}
+	/* mongo db sample query
+	 * [ 
+		{ "$match" : { "$and" : [{ "reservationDate" : { "$gte" : ISODate('2024-06-03T05:19:51.247Z')}}
+		                         , { "reservationDate" : { "$lte" : ISODate('2024-06-04T05:19:51.247Z')}}]}
+		  }
+		, { "$unwind" : { "path" : "$prodList", "preserveNullAndEmptyArrays" : true}}
+		, { "$project" : { "prodName" : "$prodList.prodNm"
+		                 , "fCnt" : "$prodList.cnt"
+						 , "salePrice" : "$prodList.salePrice"
+						 , "newReserveDate" : { "$dateToString" : { "format" : "%Y-%m-%d", "date" : "$reservationDate"}}
+						 , "saleTotPrice" : { "$multiply" : ["$prodList.cnt", "$prodList.discountPrice"]}}}
+					
+		, { "$group" : { "_id" : ["$newReserveDate", "$prodName"]
+		               , "reserveDate" : { "$first" : "$newReserveDate"}
+					         , "pname" : { "$first" : "$prodName"}
+					         , "fCnt" : { "$sum" : "$fCnt"}
+					         , "fPrice" : { "$max" : "$salePrice"}
+					         , "totPrice" : { "$sum" : "$saleTotPrice"}
+					   }
+		  }
+		, { "$project" : { "_id" : 0, "reserveDate" : 1, "pname" : 1, "fCnt" : 1, "fPrice" : 1, "totPrice" : 1}}
+		, { "$sort" : { "totPrice" : 1}}
+	  ]
+	  
+	  MARIADB query
+	  SELECT DATE_FORMAT(A.RESERVATION_DATE , '%Y-%m-%d') RESERVE_DATE
+	       , A.PROD_NAME                                  P_NAME
+	       , SUM(PROD_CNT)                                F_CNT
+	       , MAX(DISCOUNT_PRICE)                          SALE_PRICE
+	       , SUM(A.PROD_CNT * A.DISCOUNT_PRICE)           TOT_PRICE
+	  FROM   ORDER_INFO A
+	  WHERE  A.RESERVATION_DATE >= STR_TO_DATE('2024-06-03T05:19:51', '%Y-%m-%dT%H:%i:%S')
+	  AND    A.RESERVATION_DATE <= STR_TO_DATE('2024-06-04T05:19:51', '%Y-%m-%dT%H:%i:%S')
+	  GROUP  BY DATE_FORMAT(A.RESERVATION_DATE , '%Y-%m-%d') , A.PROD_NAME
+	  ORDER BY TOT_PRICE ASC
+	 * */
+	public void querySample() {
+		
+		//match type= 조건 / key = 컬럼 / val = 값
+		List<MongoProps>  matchParams = 
+			mongoUtil.newMongoProp("gte").key("reservationDate").val(OffsetDateTime.now().minusDays(1))
+		             .newInstance ("lte").key("reservationDate").val(OffsetDateTime.now())
+		             .getList();
+		
+		//project type= [표현여부 또는 계산할 예약어] Y:표현 N:표현안함 예약어:dateToString,multiply / key = 컬럼 / val = 값
+		List<MongoProps> projectParams = 
+			mongoUtil.newMongoProp("Y")          .key("prodName")      .val("$prodList.prodNm")
+			         .newInstance("Y")           .key("fCnt")          .val("$prodList.cnt")
+			         .newInstance("Y")           .key("salePrice")     .val("$prodList.discountPrice")
+			         .newInstance("dateToString").key("newReserveDate").val("%Y-%m-%d,$reservationDate")
+			         .newInstance("multiply")    .key("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice")
+			         .getList();
+		
+		//group type= id:그룹핑할 내역 또는 함수명 / key = 신규로 보여줄 컬럼 설정 / val = 기존 컬럼 지정
+		List<MongoProps> groupParams = 
+			mongoUtil.newMongoProp("id")   .key("")           .val("$newReserveDate,$prodName")
+			         .newInstance("first") .key("reserveDate").val("$newReserveDate")
+			         .newInstance("first") .key("pname")      .val("$prodName")
+			         .newInstance("sum")   .key("fCnt")       .val("$fCnt")
+			         .newInstance("max")   .key("fPrice")     .val("$salePrice")
+			         .newInstance("sum")   .key("totPrice")   .val("$saleTotPrice")
+			         .getList();
+		
+		List<MongoProps> projectParams2 = 
+				mongoUtil.newMongoProp("N") .key("id")            
+				         .newInstance("Y")  .key("reserveDate").val(1L)
+				         .newInstance("Y")  .key("pname")      .val(1L)
+				         .newInstance("Y")  .key("fCnt")       .val(1L)
+				         .newInstance("Y")  .key("fPrice")     .val(1L)
+				         .newInstance("Y")  .key("totPrice")   .val(1L)
+				         .getList();
+		
+		//sort type= 사용안함 안넣어도됨 / key = 정렬컬럼 / val = asc or desc 또는 1 또는 -1 
+		List<MongoProps> sortParams = 
+				mongoUtil.newMongoProp("").key("totPrice").val("asc")        
+				         .newInstance("").key("fPrice").val(-1)
+				         .getList();
+		
+		
+		AggregationBuilder newBuilder = new AggregationBuilder(mongoTemplate);
+		List<Object> resList = 
+		newBuilder.setMatch(matchParams)
+		          .unwind("$prodList", true)
+		          .setProject(projectParams)
+		          .setGroup(groupParams)
+		          .setProject(projectParams2)
+		          .setSort(sortParams)
+		          .aggregate("OrderInfo", Object.class);
+		
+		
+		if(resList.size() < 100) {
+			log.info("resList.size = {} / resList = {}",resList.size(), resList);	
+		}else {
+			log.info("resList.size = {} ",resList.size());
+		}
+		
+		
+		
+		AggregationBuilder newBuilder2 = new AggregationBuilder(mongoTemplate);
+		List<Object> resList2 = 
+		newBuilder2.setMatch(mongoUtil.newMongoProp("gte").key("reservationDate").val(OffsetDateTime.now().minusDays(1))
+	                                  .newInstance ("lte").key("reservationDate").val(OffsetDateTime.now())
+	                                  .getList()
+				   )
+		           .unwind("$prodList", true)
+		           .setProject(mongoUtil.newMongoProp("Y")          .key("prodName")      .val("$prodList.prodNm")
+					                    .newInstance("Y")           .key("fCnt")          .val("$prodList.cnt")
+					                    .newInstance("Y")           .key("salePrice")     .val("$prodList.discountPrice")
+					                    .newInstance("dateToString").key("newReserveDate").val("%Y-%m-%d,$reservationDate")
+					                    .newInstance("multiply")    .key("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice")
+					                    .getList()
+		           )
+		           .setGroup(mongoUtil.newMongoProp("id")   .key("")           .val("$newReserveDate,$prodName")
+					                  .newInstance("first") .key("reserveDate").val("$newReserveDate")
+					                  .newInstance("first") .key("pname")      .val("$prodName")
+					                  .newInstance("sum")   .key("fCnt")       .val("$fCnt")
+					                  .newInstance("max")   .key("fPrice")     .val("$salePrice")
+					                  .newInstance("sum")   .key("totPrice")   .val("$saleTotPrice")
+					                  .getList()
+				   )
+		           .setProject(mongoUtil.newMongoProp("N")        .key("id")            
+					                    .newInstance("Y")         .key("reserveDate").val(1L)
+					                    .newInstance("Y")         .key("pname")      .val(1L)
+					                    .newInstance("Y")         .key("fCnt")       .val(1L)
+					                    .newInstance("Y")         .key("fPrice")     .val(1L)
+					                    .newInstance("Y")         .key("totPrice")   .val(1L)
+					                    .newInstance("subtract")  .key("minusTest")  .val("$fCnt,$fPrice")
+					                    .getList()
+				   )
+		           .setSort(mongoUtil.newMongoProp("").key("totPrice").val("asc")        
+					                 .newInstance("").key("fPrice").val(-1)
+					                 .getList()
+				   )
+		           .aggregate("OrderInfo", Object.class);
+		
+		if(resList2.size() < 100) {
+			log.info("resList2.size = {} / resList2 = {}",resList2.size(), resList2);	
+		}else {
+			log.info("resList2.size = {} ",resList2.size());
+		}
+		
+	}
 	
 	
 	

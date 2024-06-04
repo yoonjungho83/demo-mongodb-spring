@@ -32,14 +32,9 @@ public class DocumentBuilder {
 		if(expr.equals("$eq")) {
 			documentList.add(new Document(expr ,Arrays.asList(val1,val2)));
 		}
-		return this;
-	}
-	public DocumentBuilder letAndOn(String expr ,String targetFiled , String field) {
-		
-//		if(expr.equals("$eq")) {
-//			documentList.add(new Document(expr ,Arrays.asList(targetFiled,field)));
-//		}
-		
+		else if(expr.equals("$ne")) {
+			documentList.add(new Document(expr ,Arrays.asList(val1,val2)));
+		}
 		return this;
 	}
 	

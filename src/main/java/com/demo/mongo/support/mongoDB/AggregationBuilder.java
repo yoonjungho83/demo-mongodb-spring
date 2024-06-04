@@ -1,7 +1,12 @@
 package com.demo.mongo.support.mongoDB;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.bson.Document;
@@ -11,6 +16,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.AddFieldsOperation;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperationContext;
 import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators;
 import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators.Subtract;
 import org.springframework.data.mongodb.core.aggregation.GroupOperation;
@@ -20,6 +26,8 @@ import org.springframework.data.mongodb.core.aggregation.SortOperation;
 import org.springframework.data.mongodb.core.aggregation.UnwindOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
 
+import com.demo.mongo.model.aggregation.MongoProps;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -28,7 +36,7 @@ public class AggregationBuilder {
 	private MongoTemplate mongoTemplate;
 	private List<AggregationOperation> operationList;
 
-	public AggregationBuilder(MongoTemplate mongoTemplate) {
+	public AggregationBuilder(MongoTemplate mongoTemplate ) {
 		this.mongoTemplate = mongoTemplate;
 		operationList = new ArrayList<>();
 	}
@@ -51,18 +59,13 @@ public class AggregationBuilder {
 		AddFieldsOperation af = 
 			Aggregation.addFields()
 			           .addField("")
-			           .withValue(ArithmeticOperators.Abs
-			        		                         .absoluteValueOf(Subtract.valueOf("timeStampTemp").subtract("a.date"))).build();
+			           .withValue(ArithmeticOperators.Abs.absoluteValueOf(Subtract.valueOf("timeStampTemp").subtract("a.date"))).build();
 		operationList.add(af);
 		return this;
 	}
 	
 
-	public AggregationBuilder group(GroupOperation groupOperation) {
-		
-		this.operationList.add(groupOperation);
-		return this;
-	}
+	
 
 	public void lookup(String from, Document let, List<Document> match) {
 		AggregationOperation lookupOperation = makeLookupOperation(from, let, match);
@@ -70,7 +73,7 @@ public class AggregationBuilder {
 	}
 
 	
-	
+	//true : left join  / false : inner join
 	public AggregationBuilder unwind(String field, boolean preserveNullAndEmptyArrays) {
 		UnwindOperation unwindOperation = Aggregation.unwind(field, preserveNullAndEmptyArrays);
 		this.operationList.add(unwindOperation);
@@ -86,21 +89,298 @@ public class AggregationBuilder {
 						.append("as", from));
 	}
 
-	
-
-	public AggregationBuilder project(ProjectionOperation projectionOperation) {
-		this.operationList.add(projectionOperation);
-		return this;
-	}
-
 	public AggregationBuilder match(List<Criteria> criteriaList) {
 		MatchOperation matchOperation = Aggregation
 				.match(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
 		operationList.add(matchOperation);
 		return this;
 	}
+	
+	//expr : $and 만 지원
+	public AggregationBuilder setMatch(List<MongoProps> conList) {
+//		final List<AggregateParam>  conList1 = 
+//				mongoUtil.newParam("match").col("").val("")
+//			          .newInstance("match").col("").val("")
+//			          .getList();
+				
+		List<Document> list  = new ArrayList<>();
+		for(MongoProps mp :conList) {
+			String type = "$"+mp.getType();
+			
+					
+			Object obj = null;
+			if(mp.getValue() instanceof String) {
+				obj = mp.getValue();
+			}
+			else if(mp.getValue() instanceof OffsetDateTime) {
+				obj = offsetDateTimeToDate((OffsetDateTime)mp.getValue()) ;
+			}
+			else if(mp.getValue() instanceof LocalDateTime) {
+				obj = localDateTimeToDate((LocalDateTime)mp.getValue()) ;
+			}
+			else {
+				obj = mp.getValue();
+			}
+			
+			list.add( new Document(mp.getKey(), new Document(type, obj))  );
+		}
+		;
+		
+		AggregationOperation matchOperation = 
+				context -> {
+					return new Document("$match", new Document("$and", list));
+				}
+				;
+		operationList.add(matchOperation);
+		return this;
+	}
+
+	public AggregationBuilder project(ProjectionOperation projectionOperation) {
+		this.operationList.add(projectionOperation);
+		return this;
+	}
+
+	/*
+	 * //ex params
+		final List<AggregateParam> tempList = 
+		mongoUtil.newParam("project")     .col("prodName")      .val("$prodList.prodNm")
+		      .newInstance("project")     .col("fCnt")          .val("$prodList.cnt")
+		      .newInstance("project")     .col("salePrice")     .val("$prodList.salePrice")
+		      .newInstance("dateToString").col("newReserveDate").val("%Y-%m-%d,$reservationDate")
+		      .newInstance("multiply")    .col("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice")
+		      .getList();
+		      
+        new Document
+        ("$project", new Document("newReserveDate", new Document("$dateToString", new Document("format", "%Y-%m-%d").append("date", "$reservationDate")))
+        	          .append("prodName"    , "$prodList.prodNm")
+        	          .append("fCnt"        , "$prodList.cnt")
+        	          .append("salePrice"   , "$prodList.salePrice")
+        	          .append("saleTotPrice", new Document("$multiply", Arrays.asList("$prodList.cnt", "$prodList.discountPrice")))
+        );
+	 * */
+	public AggregationBuilder setProject(final List<MongoProps> conList) {
+		
+//		final List<AggregateParam> tempList = conList != null? conList :
+//				mongoUtil.newParam("Y")           .col("prodName")      .val("$prodList.prodNm")
+//				      .newInstance("Y")           .col("fCnt")          .val("$prodList.cnt")
+//				      .newInstance("Y")           .col("salePrice")     .val("$prodList.salePrice")
+//				      .newInstance("dateToString").col("newReserveDate").val("%Y-%m-%d,$reservationDate")
+//				      .newInstance("multiply")    .col("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice")
+//				      .getList();
+//		AggregationOperation projectOperation = new AggregationOperation() {
+//			
+//			int ii = 1;
+//			
+//			@Override
+//			public Document toDocument(AggregationOperationContext context) {
+//				// TODO Auto-generated method stub
+//				return (Document)context;
+//			}
+//
+//			@Override
+//			public List<Document> toPipelineStages(AggregationOperationContext context) {
+//				// TODO Auto-generated method stub
+//				return AggregationOperation.super.toPipelineStages(context);
+//			}
+//			
+//			
+//		};
+//		Document d = null;
+//		for(MongoProps mp : conList) {
+//			if(mp.getType().equals("Y") || mp.getType().equals("")) 
+//			{
+//				d = d == null? new Document(mp.getKey(),mp.getValue())
+//						         : d.append(mp.getKey(),mp.getValue());
+//			}
+//			else if(mp.getType().equals("N") ) //컬럼 안보이게
+//			{
+//				String key = mp.getKey().equals("id") ? "_id" : mp.getKey();
+//				d = d == null? new Document(key , 0L)
+//						         : d.append(key , 0L);
+//			}
+//			else if(mp.getType().equals("dateToString")) 
+//			{
+//				String [] str = ((String)mp.getValue()).split(",");
+//				if(str == null || str.length != 2) continue;
+//				d = d == null? new Document(mp.getKey() , new Document("$dateToString", new Document("format", str[0]).append("date", str[1])) )
+//						     :     d.append(mp.getKey() , new Document("$dateToString", new Document("format", str[0]).append("date", str[1])) );
+//			}
+//			else if(mp.getType().equals("multiply")) 
+//			{//인수들의 곱
+//				List<String> llist = Arrays.asList(((String)mp.getValue()).split(","));
+//				if(llist == null || llist.size() == 0) continue;
+//				d = d == null? new Document(mp.getKey() , new Document("$multiply", llist)  )
+//						     :     d.append(mp.getKey() , new Document("$multiply", llist)  );
+//			}
+//			else if(mp.getType().equals("subtract")) 
+//			{//첫번째 인수에서 2번째 인수를 뺌
+//				List<String> llist = Arrays.asList(((String)mp.getValue()).split(","));
+//				if(llist == null || llist.size() == 0) continue;
+//				d = d == null? new Document(mp.getKey() , new Document("$subtract", llist)  )
+//						     :     d.append(mp.getKey() , new Document("$subtract", llist)  );
+//			}
+//		}
+//		if(d == null) return null;
+//		
+//		projectOperation.toPipelineStages((AggregationOperationContext) new Document("$project" , d));
+		
+		AggregationOperation projectOperation = 
+		context ->{
+			
+			Document d = null;
+			for(MongoProps mp : conList) {
+				if(mp.getType().equals("Y") || mp.getType().equals("")) 
+				{
+					d = d == null? new Document(mp.getKey(),mp.getValue())
+							         : d.append(mp.getKey(),mp.getValue());
+				}
+				else if(mp.getType().equals("N") ) //컬럼 안보이게
+				{
+					String key = mp.getKey().equals("id") ? "_id" : mp.getKey();
+					d = d == null? new Document(key , 0L)
+							         : d.append(key , 0L);
+				}
+				else if(mp.getType().equals("dateToString")) 
+				{
+					String [] str = ((String)mp.getValue()).split(",");
+					if(str == null || str.length != 2) continue;
+					d = d == null? new Document(mp.getKey() , new Document("$dateToString", new Document("format", str[0]).append("date", str[1])) )
+							     :     d.append(mp.getKey() , new Document("$dateToString", new Document("format", str[0]).append("date", str[1])) );
+				}
+				else if(mp.getType().equals("multiply")) 
+				{//인수들의 곱
+					List<String> llist = Arrays.asList(((String)mp.getValue()).split(","));
+					if(llist == null || llist.size() == 0) continue;
+					d = d == null? new Document(mp.getKey() , new Document("$multiply", llist)  )
+							     :     d.append(mp.getKey() , new Document("$multiply", llist)  );
+				}
+				else if(mp.getType().equals("subtract")) 
+				{//첫번째 인수에서 2번째 인수를 뺌
+					List<String> llist = Arrays.asList(((String)mp.getValue()).split(","));
+					if(llist == null || llist.size() == 0) continue;
+					d = d == null? new Document(mp.getKey() , new Document("$subtract", llist)  )
+							     :     d.append(mp.getKey() , new Document("$subtract", llist)  );
+				}
+			}
+			if(d == null) return null;
+			
+			return new Document("$project" , d);
+			
+		} ;
+		operationList.add(projectOperation);
+		
+		return this;
+	}
+	
+	
+	public AggregationBuilder group(GroupOperation groupOperation) {
+		
+		this.operationList.add(groupOperation);
+		return this;
+	}
+
+
+	/**
+	 * conList sample
+	 * mongoUtil.newParam("id")    .col("")           .val("$newReserveDate,$prodName")
+			      .newInstance("first") .col("reserveDate").val("$newReserveDate")
+			      .newInstance("first") .col("pname")      .val("$prodName")
+			      .newInstance("sum")   .col("fCnt")       .val("$fCnt")
+			      .newInstance("max")   .col("fPrice")     .val("$salePrice")
+			      .newInstance("sum")   .col("totPrice")   .val("$saleTotPrice")
+			      .getList();
+		
+	   생성
+	   new Document
+	   ("$group", new Document("_id", Arrays.asList("$newReserveDate", "$prodName"))
+	              .append("reserveDate", new Document("$first", "$newReserveDate"))
+	              .append("pname", new Document("$first", "$prodName"))
+	              .append("fCnt", new Document("$sum", "$fCnt"))
+	              .append("fPrice", new Document("$max", "$salePrice"))
+	              .append("totPrice", new Document("$sum", "$saleTotPrice"))
+	   );
+	 * 
+	 */
+	public AggregationBuilder setGroup(final List<MongoProps> conList) {
+			
+//		final List<AggregateParam> tempList = conList != null? conList :
+//			mongoUtil.newParam("id")    .col("")           .val("$newReserveDate,$prodName")
+//			      .newInstance("first") .col("reserveDate").val("$newReserveDate")
+//			      .newInstance("first") .col("pname")      .val("$prodName")
+//			      .newInstance("sum")   .col("fCnt")       .val("$fCnt")
+//			      .newInstance("max")   .col("fPrice")     .val("$salePrice")
+//			      .newInstance("sum")   .col("totPrice")   .val("$saleTotPrice")
+//			      .getList();
+		
+		AggregationOperation groupOperation =
+		context -> {
+
+			Document d = null;
+			for(MongoProps mp : conList) 
+			{
+				if(mp.getType().equals("id")) 
+				{
+					List<String> idList = Arrays.asList(((String)mp.getValue()).split(","));
+					if(idList == null || idList.size() == 0) continue;
+					d = d == null? new Document("_id" , idList)
+							         : d.append("_id" , idList);
+				}
+				else if(mp.getType().equals("sum")) 
+				{
+					d = d == null? new Document(mp.getKey() , new Document("$sum", mp.getValue()) )
+							     :     d.append(mp.getKey() , new Document("$sum", mp.getValue()) );
+				}else {
+					d = d == null? new Document(mp.getKey() , new Document("$"+mp.getType() , mp.getValue()) )
+						         :     d.append(mp.getKey() , new Document("$"+mp.getType() , mp.getValue()) );
+				}
+			}
+			if(d == null) return null;
+			
+			return new Document("$group" , d);
+		};
+		
+		operationList.add(groupOperation);
+			
+		return this;
+
+	}
 
 	public AggregationBuilder sort(SortOperation sortOperation) {
+		operationList.add(sortOperation);
+		return this;
+	}
+	
+	public AggregationBuilder setSort(final List<MongoProps> conList) {
+		
+		AggregationOperation sortOperation = 
+		context -> {
+			Document d = null;
+			for(MongoProps mp: conList) {
+				Long val = 1L;
+				if(mp.getValue() instanceof String) {
+					val = ((String)mp.getValue()).equals("asc") ?  1L
+							 :((String)mp.getValue()).equals("desc")? -1L
+							 :1L;//default asc
+				}
+				else if(mp.getValue() instanceof Integer) {
+					val =Long.valueOf((int)mp.getValue());
+				}
+				else if(mp.getValue() instanceof Long) {
+					val = ((Long)mp.getValue());
+				}
+				
+				
+				if(d == null) {
+					d = new Document(mp.getKey(), val); 
+				}else {
+					d.append(mp.getKey(), val);
+				}
+			}
+			
+			return new Document("$sort", d);
+		};
+		
+		
 		operationList.add(sortOperation);
 		return this;
 	}
@@ -132,5 +412,23 @@ public class AggregationBuilder {
 		final int   end = Math.min((start + pageable.getPageSize()), result.size());
 		
 		return new PageImpl<>(result.subList(start, end), pageable, result.size());
+	}
+	
+	
+	/* mongoDB data 조회시 해당 함수로 변환하여 조회
+	 * 아래는 변환된 예
+	 * { "$match" : { "$and" : [{ "reservationDate" : { "$gte" : { "$date" : "2024-06-05T01:21:49.066Z"}}}]}}
+	 *  */
+	public Date localDateTimeToDate(LocalDateTime localdDateTime) {
+		
+		Instant instant = localdDateTime.atZone(ZoneId.systemDefault()).toInstant();    
+		Date date = Date.from(instant);
+		return date;
+	}
+	
+	/* mongoDB data 조회시 해당 함수로 변환하여 조회 */
+	public Date offsetDateTimeToDate(OffsetDateTime offsetDateTime) {
+		
+		return Date.from(offsetDateTime.toInstant());
 	}
 }
