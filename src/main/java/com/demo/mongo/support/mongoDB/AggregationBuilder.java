@@ -95,6 +95,11 @@ public class AggregationBuilder {
 		return this;
 	}
 	
+	public AggregationBuilder setMatch(MongoPropsBuilder props) {
+		
+		return setMatch(props.getList());
+	}
+	
 	//expr : $and 만 지원
 	public AggregationBuilder setMatch(List<MongoProps> conList) {
 //		final List<AggregateParam>  conList1 = 
@@ -156,6 +161,11 @@ public class AggregationBuilder {
         	          .append("saleTotPrice", new Document("$multiply", Arrays.asList("$prodList.cnt", "$prodList.discountPrice")))
         );
 	 * */
+	public AggregationBuilder setProject(MongoPropsBuilder props) {
+		
+		return setProject(props.getList());
+	}
+	
 	public AggregationBuilder setProject(final List<MongoProps> conList) {
 		
 		AggregationOperation projectOperation = 
@@ -235,6 +245,10 @@ public class AggregationBuilder {
 	   );
 	 * 
 	 */
+	public AggregationBuilder setGroup(MongoPropsBuilder props) {
+		
+		return setGroup(props.getList());
+	}
 	public AggregationBuilder setGroup(final List<MongoProps> conList) {
 			
 		AggregationOperation groupOperation =
@@ -275,6 +289,10 @@ public class AggregationBuilder {
 		return this;
 	}
 	
+	public AggregationBuilder setSort(MongoPropsBuilder props) {
+		
+		return setSort(props.getList());
+	}
 	public AggregationBuilder setSort(final List<MongoProps> conList) {
 		
 		AggregationOperation sortOperation = 

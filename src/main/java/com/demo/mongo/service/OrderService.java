@@ -509,12 +509,12 @@ public class OrderService {
 		
 		
 		AggregationBuilder newBuilder = new AggregationBuilder(mongoTemplate);
-		List<Object> resList = newBuilder.setMatch  (matchProps.getList())
+		List<Object> resList = newBuilder.setMatch  (matchProps)
 								         .unwind    ("$prodList", true)
-								         .setProject(projectProps.getList())
-								         .setGroup  (groupProps.getList())
-								         .setProject(projectProps2.getList())
-								         .setSort   (sortProps.getList())
+								         .setProject(projectProps)
+								         .setGroup  (groupProps)
+								         .setProject(projectProps2)
+								         .setSort   (sortProps)
 								         .aggregate ("OrderInfo", Object.class);
 		
 		
