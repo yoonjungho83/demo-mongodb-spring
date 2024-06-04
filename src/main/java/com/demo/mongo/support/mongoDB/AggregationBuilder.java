@@ -53,16 +53,16 @@ public class AggregationBuilder {
 		return this;
 	}
 	
-	public AggregationBuilder addField() {
-		
-//		Aggregation.addFields().addField("time_dist")
-		AddFieldsOperation af = 
-			Aggregation.addFields()
-			           .addField("")
-			           .withValue(ArithmeticOperators.Abs.absoluteValueOf(Subtract.valueOf("timeStampTemp").subtract("a.date"))).build();
-		operationList.add(af);
-		return this;
-	}
+//	public AggregationBuilder addField() {
+//		
+////		Aggregation.addFields().addField("time_dist")
+//		AddFieldsOperation af = 
+//			Aggregation.addFields()
+//			           .addField("")
+//			           .withValue(ArithmeticOperators.Abs.absoluteValueOf(Subtract.valueOf("timeStampTemp").subtract("a.date"))).build();
+//		operationList.add(af);
+//		return this;
+//	}
 	
 
 	
@@ -81,12 +81,11 @@ public class AggregationBuilder {
 	}
 
 	public AggregationOperation makeLookupOperation(String from, Document let, List<Document> match) {
-		return context -> new Document("$lookup",
-				new Document("from", from).append("let", let)
-						.append("pipeline",
-								Arrays.<Object>asList(
-										new Document("$match", new Document("$expr", new Document("$and", match)))))
-						.append("as", from));
+		return context -> 
+			new Document("$lookup",new Document("from", from)
+									.append("let", let)
+									.append("pipeline", Arrays.<Object>asList(new Document("$match", new Document("$expr", new Document("$and", match)) ))  )
+									.append("as", from));
 	}
 
 	public AggregationBuilder match(List<Criteria> criteriaList) {
@@ -129,8 +128,7 @@ public class AggregationBuilder {
 		AggregationOperation matchOperation = 
 				context -> {
 					return new Document("$match", new Document("$and", list));
-				}
-				;
+				};
 		operationList.add(matchOperation);
 		return this;
 	}
@@ -159,70 +157,6 @@ public class AggregationBuilder {
         );
 	 * */
 	public AggregationBuilder setProject(final List<MongoProps> conList) {
-		
-//		final List<AggregateParam> tempList = conList != null? conList :
-//				mongoUtil.newParam("Y")           .col("prodName")      .val("$prodList.prodNm")
-//				      .newInstance("Y")           .col("fCnt")          .val("$prodList.cnt")
-//				      .newInstance("Y")           .col("salePrice")     .val("$prodList.salePrice")
-//				      .newInstance("dateToString").col("newReserveDate").val("%Y-%m-%d,$reservationDate")
-//				      .newInstance("multiply")    .col("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice")
-//				      .getList();
-//		AggregationOperation projectOperation = new AggregationOperation() {
-//			
-//			int ii = 1;
-//			
-//			@Override
-//			public Document toDocument(AggregationOperationContext context) {
-//				// TODO Auto-generated method stub
-//				return (Document)context;
-//			}
-//
-//			@Override
-//			public List<Document> toPipelineStages(AggregationOperationContext context) {
-//				// TODO Auto-generated method stub
-//				return AggregationOperation.super.toPipelineStages(context);
-//			}
-//			
-//			
-//		};
-//		Document d = null;
-//		for(MongoProps mp : conList) {
-//			if(mp.getType().equals("Y") || mp.getType().equals("")) 
-//			{
-//				d = d == null? new Document(mp.getKey(),mp.getValue())
-//						         : d.append(mp.getKey(),mp.getValue());
-//			}
-//			else if(mp.getType().equals("N") ) //컬럼 안보이게
-//			{
-//				String key = mp.getKey().equals("id") ? "_id" : mp.getKey();
-//				d = d == null? new Document(key , 0L)
-//						         : d.append(key , 0L);
-//			}
-//			else if(mp.getType().equals("dateToString")) 
-//			{
-//				String [] str = ((String)mp.getValue()).split(",");
-//				if(str == null || str.length != 2) continue;
-//				d = d == null? new Document(mp.getKey() , new Document("$dateToString", new Document("format", str[0]).append("date", str[1])) )
-//						     :     d.append(mp.getKey() , new Document("$dateToString", new Document("format", str[0]).append("date", str[1])) );
-//			}
-//			else if(mp.getType().equals("multiply")) 
-//			{//인수들의 곱
-//				List<String> llist = Arrays.asList(((String)mp.getValue()).split(","));
-//				if(llist == null || llist.size() == 0) continue;
-//				d = d == null? new Document(mp.getKey() , new Document("$multiply", llist)  )
-//						     :     d.append(mp.getKey() , new Document("$multiply", llist)  );
-//			}
-//			else if(mp.getType().equals("subtract")) 
-//			{//첫번째 인수에서 2번째 인수를 뺌
-//				List<String> llist = Arrays.asList(((String)mp.getValue()).split(","));
-//				if(llist == null || llist.size() == 0) continue;
-//				d = d == null? new Document(mp.getKey() , new Document("$subtract", llist)  )
-//						     :     d.append(mp.getKey() , new Document("$subtract", llist)  );
-//			}
-//		}
-//		if(d == null) return null;
-//		
-//		projectOperation.toPipelineStages((AggregationOperationContext) new Document("$project" , d));
 		
 		AggregationOperation projectOperation = 
 		context ->{
@@ -303,15 +237,6 @@ public class AggregationBuilder {
 	 */
 	public AggregationBuilder setGroup(final List<MongoProps> conList) {
 			
-//		final List<AggregateParam> tempList = conList != null? conList :
-//			mongoUtil.newParam("id")    .col("")           .val("$newReserveDate,$prodName")
-//			      .newInstance("first") .col("reserveDate").val("$newReserveDate")
-//			      .newInstance("first") .col("pname")      .val("$prodName")
-//			      .newInstance("sum")   .col("fCnt")       .val("$fCnt")
-//			      .newInstance("max")   .col("fPrice")     .val("$salePrice")
-//			      .newInstance("sum")   .col("totPrice")   .val("$saleTotPrice")
-//			      .getList();
-		
 		AggregationOperation groupOperation =
 		context -> {
 
@@ -393,13 +318,7 @@ public class AggregationBuilder {
 	 */
 	public <T> List<T> aggregate(String collectionName, Class<T> entityClass) {
 
-		List<AggregationOperation> operations = new ArrayList<>();
-
-		for (AggregationOperation operation : operationList) {
-			operations.add(operation);
-		}
-
-		Aggregation aggregation = Aggregation.newAggregation(operations.toArray(new AggregationOperation[0]));
+		Aggregation aggregation = Aggregation.newAggregation(operationList.toArray(new AggregationOperation[0]));
 
 		log.info("AggregationBuilder > aggregate = {}", aggregation);
 		return mongoTemplate.aggregate(aggregation, collectionName, entityClass).getMappedResults();
