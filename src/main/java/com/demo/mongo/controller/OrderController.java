@@ -34,16 +34,10 @@ public class OrderController {
 	public String group() {
 		return orderService.getGrouppingOrder();
 	}
-	@GetMapping("/sample/aggre")
-	public String aggre() {
-		 orderService.testAggre();
-		 return "succ";
-	}
 	
-	
-	@GetMapping("/sample/querySample")
-	public String querySample() {
-		orderService.querySample();
+	@GetMapping("/querySampleFinal")
+	public String querySampleFinal() {
+		orderService.querySampleFinal();
 		return "succ";
 	}
 	

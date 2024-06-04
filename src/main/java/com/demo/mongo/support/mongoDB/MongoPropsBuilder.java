@@ -33,8 +33,32 @@ public class MongoPropsBuilder {
 		return this;
 	}
 	
+	//props 강제 추가
+	public MongoPropsBuilder setMongoProps(MongoProps mp) {
+		try {
+			list.add(mp);
+			curIdx = list.size()-1;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return this;
+	}
+	//props 강제 삭제
+	public MongoPropsBuilder delMongoProps(MongoProps mp) {
+		try {
+			if(list.contains(mp)) {
+				int idx = list.indexOf(mp);
+				list.remove(idx);
+				curIdx = list.size()-1;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return this;
+	}
 	
-	public MongoPropsBuilder newInstance(String type) {
+	
+	public MongoPropsBuilder newInsAppend(String type) {
 		MongoProps s = new MongoProps(type);
 		list.add(s );
 		curIdx = list.size()-1;
