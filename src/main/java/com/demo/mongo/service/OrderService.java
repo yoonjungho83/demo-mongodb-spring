@@ -459,11 +459,14 @@ public class OrderService {
 	  MARIADB query
 	  SELECT DATE_FORMAT(A.RESERVATION_DATE , '%Y-%m-%d') RESERVE_DATE
 	       , A.PROD_NAME                                  P_NAME
-	       , SUM(PROD_CNT)                                F_CNT
-	       , MAX(DISCOUNT_PRICE)                          SALE_PRICE
-	       , SUM(A.PROD_CNT * A.DISCOUNT_PRICE)           TOT_PRICE
+	       , SUM(B.PROD_CNT)                              F_CNT
+	       , MAX(B.DISCOUNT_PRICE)                        SALE_PRICE
+	       , SUM(B.PROD_CNT * B.DISCOUNT_PRICE)           TOT_PRICE
 	  FROM   ORDER_INFO A
-	  WHERE  A.RESERVATION_DATE >= STR_TO_DATE('2024-06-03T05:19:51', '%Y-%m-%dT%H:%i:%S')
+	  LEFT OUTER 
+	  JOIN   PROD_NM B
+	  ON     A.PROD_NAME = B.PROD_NAME
+	  AND    A.RESERVATION_DATE >= STR_TO_DATE('2024-06-03T05:19:51', '%Y-%m-%dT%H:%i:%S')
 	  AND    A.RESERVATION_DATE <= STR_TO_DATE('2024-06-04T05:19:51', '%Y-%m-%dT%H:%i:%S')
 	  GROUP  BY DATE_FORMAT(A.RESERVATION_DATE , '%Y-%m-%d') , A.PROD_NAME
 	  ORDER BY TOT_PRICE ASC
@@ -482,8 +485,8 @@ public class OrderService {
 			mongoUtil.newMongoProp("Y")           .key("prodName")      .val("$prodList.prodNm")
 			         .newInsAppend("Y")           .key("fCnt")          .val("$prodList.cnt")
 			         .newInsAppend("Y")           .key("salePrice")     .val("$prodList.discountPrice")
-			         .newInsAppend("dateToString").key("newReserveDate").val("%Y-%m-%d,$reservationDate")
-			         .newInsAppend("multiply")    .key("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice") ;
+			         .newInsAppend("dateToString").key("newReserveDate").val("%Y-%m-%d , $reservationDate")
+			         .newInsAppend("multiply")    .key("saleTotPrice")  .val("$prodList.cnt , $prodList.discountPrice") ;
 		
 		//group type= id:그룹핑할 내역 또는 함수명 / key = 신규로 보여줄 컬럼 설정 / val = 기존 컬럼 지정
 		MongoPropsBuilder groupProps = 

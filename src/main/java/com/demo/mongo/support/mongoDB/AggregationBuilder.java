@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bson.Document;
 import org.springframework.data.domain.PageImpl;
@@ -109,7 +110,7 @@ public class AggregationBuilder {
 				
 		List<Document> list  = new ArrayList<>();
 		for(MongoProps mp :conList) {
-			String type = "$"+mp.getType();
+			String type = "$"+mp.getType().trim();
 			
 					
 			Object obj = null;
@@ -188,19 +189,19 @@ public class AggregationBuilder {
 				{
 					String [] str = ((String)mp.getValue()).split(",");
 					if(str == null || str.length != 2) continue;
-					d = d == null? new Document(mp.getKey() , new Document("$dateToString", new Document("format", str[0]).append("date", str[1])) )
-							     :     d.append(mp.getKey() , new Document("$dateToString", new Document("format", str[0]).append("date", str[1])) );
+					d = d == null? new Document(mp.getKey() , new Document("$dateToString", new Document("format", str[0].trim()).append("date", str[1].trim())) )
+							     :     d.append(mp.getKey() , new Document("$dateToString", new Document("format", str[0].trim()).append("date", str[1].trim())) );
 				}
 				else if(mp.getType().equals("multiply")) 
 				{//인수들의 곱
-					List<String> llist = Arrays.asList(((String)mp.getValue()).split(","));
+					List<String> llist = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
 					if(llist == null || llist.size() == 0) continue;
 					d = d == null? new Document(mp.getKey() , new Document("$multiply", llist)  )
 							     :     d.append(mp.getKey() , new Document("$multiply", llist)  );
 				}
 				else if(mp.getType().equals("subtract")) 
 				{//첫번째 인수에서 2번째 인수를 뺌
-					List<String> llist = Arrays.asList(((String)mp.getValue()).split(","));
+					List<String> llist = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
 					if(llist == null || llist.size() == 0) continue;
 					d = d == null? new Document(mp.getKey() , new Document("$subtract", llist)  )
 							     :     d.append(mp.getKey() , new Document("$subtract", llist)  );
@@ -259,7 +260,7 @@ public class AggregationBuilder {
 			{
 				if(mp.getType().equals("id")) 
 				{
-					List<String> idList = Arrays.asList(((String)mp.getValue()).split(","));
+					List<String> idList = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
 					if(idList == null || idList.size() == 0) continue;
 					d = d == null? new Document("_id" , idList)
 							         : d.append("_id" , idList);
@@ -301,9 +302,9 @@ public class AggregationBuilder {
 			for(MongoProps mp: conList) {
 				Long val = 1L;
 				if(mp.getValue() instanceof String) {
-					val = ((String)mp.getValue()).equals("asc") ?  1L
-							 :((String)mp.getValue()).equals("desc")? -1L
-							 :1L;//default asc
+					val = ((String)mp.getValue()).trim().equals("asc") ?  1L
+						 :((String)mp.getValue()).trim().equals("desc")? -1L
+						 :1L;//default asc
 				}
 				else if(mp.getValue() instanceof Integer) {
 					val =Long.valueOf((int)mp.getValue());
