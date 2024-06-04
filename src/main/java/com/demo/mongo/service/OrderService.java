@@ -478,6 +478,7 @@ public class OrderService {
 			mongoUtil.newMongoProp("gte").key("reservationDate").val(OffsetDateTime.now().minusDays(1))
 		             .newInsAppend("lte").key("reservationDate").val(OffsetDateTime.now());
 		
+		//1번째 조건 삭제
 		matchProps.delMongoProps(1);//기본 30만건에 unwind로 array가 풀리면서 100만건 이상일듯 -> 대략 12초 정도 걸림.
 		
 		//project type= [표현여부 또는 계산할 예약어] Y:표현 N:표현안함 예약어:dateToString,multiply / key = 컬럼 / val = 값
