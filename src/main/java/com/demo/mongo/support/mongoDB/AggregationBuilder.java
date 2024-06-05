@@ -83,10 +83,10 @@ public class AggregationBuilder {
 
 	public AggregationOperation makeLookupOperation(String from, Document let, List<Document> match) {
 		return context -> 
-			new Document("$lookup",new Document("from", from)
-									.append("let", let)
-									.append("pipeline", Arrays.<Object>asList(new Document("$match", new Document("$expr", new Document("$and", match)) ))  )
-									.append("as", from));
+			new Document("$lookup",new Document("from"    , from)
+									    .append("let"     , let)
+									    .append("pipeline", Arrays.<Object>asList(new Document("$match", new Document("$expr", new Document("$and", match)) ))  )
+									    .append("as"      , from));
 	}
 
 	public AggregationBuilder match(List<Criteria> criteriaList) {
@@ -108,34 +108,72 @@ public class AggregationBuilder {
 //			          .newInstance("match").col("").val("")
 //			          .getList();
 				
-		List<Document> list  = new ArrayList<>();
-		for(MongoProps mp :conList) {
-			String type = "$"+mp.getType().trim();
+		List<Criteria> cList = new ArrayList<>();
+		for(MongoProps mp : conList) {
+			String key  = mp.getKey();
+			String expr = mp.getType();
+			Object val  = mp.getValue();
+			Criteria c  = new Criteria(key);
 			
-					
 			Object obj = null;
-			if(mp.getValue() instanceof String) {
-				obj = mp.getValue();
+			if(val instanceof String) {
+				obj = val;
 			}
-			else if(mp.getValue() instanceof OffsetDateTime) {
+			else if(val instanceof OffsetDateTime) {
 				obj = offsetDateTimeToDate((OffsetDateTime)mp.getValue()) ;
 			}
-			else if(mp.getValue() instanceof LocalDateTime) {
+			else if(val instanceof LocalDateTime) {
 				obj = localDateTimeToDate((LocalDateTime)mp.getValue()) ;
 			}
 			else {
-				obj = mp.getValue();
+				obj = val;
 			}
 			
-			list.add( new Document(mp.getKey(), new Document(type, obj))  );
+			if(expr.equals("eq"    ))      {c.is(obj);              }              
+			else if(expr.equals("ne"    )) {c.ne(obj);              }              
+			else if(expr.equals("exists")) {c.exists((boolean)obj); } 
+			else if(expr.equals("gt"    )) {c.gt(obj);              }              
+			else if(expr.equals("gte"   )) {c.gte(obj);             }             
+			else if(expr.equals("lt"    )) {c.lt(obj);              }              
+			else if(expr.equals("lte"   )) {c.lte(obj);             }             
+			else if(expr.equals("in"    )) {
+	//			ArrayList<String> list = new ArrayList<>(Stream.of(((String)val).split(",")).collect(Collectors.toList()));
+	//			c.in(list); 
+			}
+		     cList.add(c);
 		}
-		;
 		
-		AggregationOperation matchOperation = 
-				context -> {
-					return new Document("$match", new Document("$and", list));
-				};
-		operationList.add(matchOperation);
+		MatchOperation m = Aggregation.match( new Criteria().andOperator(cList) );
+		operationList.add(m);
+		
+		
+//		List<Document> list  = new ArrayList<>();
+//		for(MongoProps mp :conList) {
+//			String type = "$"+mp.getType().trim();
+//			
+//			Object obj = null;
+//			if(mp.getValue() instanceof String) {
+//				obj = mp.getValue();
+//			}
+//			else if(mp.getValue() instanceof OffsetDateTime) {
+//				obj = offsetDateTimeToDate((OffsetDateTime)mp.getValue()) ;
+//			}
+//			else if(mp.getValue() instanceof LocalDateTime) {
+//				obj = localDateTimeToDate((LocalDateTime)mp.getValue()) ;
+//			}
+//			else {
+//				obj = mp.getValue();
+//			}
+//			
+//			list.add( new Document(mp.getKey(), new Document(type, obj))  );
+//		}
+//		;
+//		
+//		AggregationOperation matchOperation = 
+//				context -> {
+//					return new Document("$match", new Document("$and", list));
+//				};
+//		operationList.add(matchOperation);
 		return this;
 	}
 
