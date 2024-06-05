@@ -8,18 +8,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.bson.Document;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.AddFieldsOperation;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
-import org.springframework.data.mongodb.core.aggregation.AggregationOperationContext;
 import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators;
-import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators.Subtract;
+import org.springframework.data.mongodb.core.aggregation.DateOperators;
+import org.springframework.data.mongodb.core.aggregation.DateOperators.Timezone;
 import org.springframework.data.mongodb.core.aggregation.GroupOperation;
 import org.springframework.data.mongodb.core.aggregation.MatchOperation;
 import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
@@ -147,11 +147,11 @@ public class AggregationBuilder {
 	/*
 	 * //ex params
 		final List<AggregateParam> tempList = 
-		mongoUtil.newParam("project")     .col("prodName")      .val("$prodList.prodNm")
-		      .newInstance("project")     .col("fCnt")          .val("$prodList.cnt")
-		      .newInstance("project")     .col("salePrice")     .val("$prodList.salePrice")
-		      .newInstance("dateToString").col("newReserveDate").val("%Y-%m-%d,$reservationDate")
-		      .newInstance("multiply")    .col("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice")
+		mongoUtil.newParam("project")     .key("prodName")      .val("$prodList.prodNm")
+		      .newInstance("project")     .key("fCnt")          .val("$prodList.cnt")
+		      .newInstance("project")     .key("salePrice")     .val("$prodList.salePrice")
+		      .newInstance("dateToString").key("newReserveDate").val("%Y-%m-%d,$reservationDate")
+		      .newInstance("multiply")    .key("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice")
 		      .getList();
 		      
         new Document
@@ -169,50 +169,97 @@ public class AggregationBuilder {
 	
 	public AggregationBuilder setProject(final List<MongoProps> conList) {
 		
-		AggregationOperation projectOperation = 
-		context ->{
-			
-			Document d = null;
-			for(MongoProps mp : conList) {
-				if(mp.getType().equals("Y") || mp.getType().equals("")) 
-				{
-					d = d == null? new Document(mp.getKey(),mp.getValue())
-							         : d.append(mp.getKey(),mp.getValue());
-				}
-				else if(mp.getType().equals("N") ) //컬럼 안보이게
-				{
-					String key = mp.getKey().equals("id") ? "_id" : mp.getKey();
-					d = d == null? new Document(key , 0L)
-							         : d.append(key , 0L);
-				}
-				else if(mp.getType().equals("dateToString")) 
-				{
-					String [] str = ((String)mp.getValue()).split(",");
-					if(str == null || str.length != 2) continue;
-					d = d == null? new Document(mp.getKey() , new Document("$dateToString", new Document("format", str[0].trim()).append("date", str[1].trim())) )
-							     :     d.append(mp.getKey() , new Document("$dateToString", new Document("format", str[0].trim()).append("date", str[1].trim())) );
-				}
-				else if(mp.getType().equals("multiply")) 
-				{//인수들의 곱
-					List<String> llist = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
-					if(llist == null || llist.size() == 0) continue;
-					d = d == null? new Document(mp.getKey() , new Document("$multiply", llist)  )
-							     :     d.append(mp.getKey() , new Document("$multiply", llist)  );
-				}
-				else if(mp.getType().equals("subtract")) 
-				{//첫번째 인수에서 2번째 인수를 뺌
-					List<String> llist = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
-					if(llist == null || llist.size() == 0) continue;
-					d = d == null? new Document(mp.getKey() , new Document("$subtract", llist)  )
-							     :     d.append(mp.getKey() , new Document("$subtract", llist)  );
-				}
+		ProjectionOperation p = Aggregation.project();
+		
+		for(MongoProps mp : conList) {
+			String val = mp.getValue() == null ? "" : (String)mp.getValue();
+			String key = mp.getKey();
+			if(mp.getType().equals("Y") || mp.getType().equals("")) 
+			{
+				String temp = !val.equals("")? val : key;
+				p = p.andExpression(temp).as(key.replace("$", ""));
 			}
-			if(d == null) return null;
+			else if(mp.getType().equals("N") ) //컬럼 안보이게
+			{
+				key = key.equals("id") ? "_id" : key;
+				p = p.andExclude(key);
+			}
+			else if(mp.getType().equals("dateToString")) 
+			{
+				String [] str = val.split(",");
+				if(str == null || str.length != 2) continue;
+				
+				//0번째 : format  / 1번째: DB 컬럼 객체 
+				//key : 신규 컬럼명
+//				System.out.println("ZoneId.systemDefault() ================================ "+ZoneId.systemDefault().getId());
+				p = p.and(DateOperators.zonedDateOf(str[1].trim(), Timezone.valueOf(ZoneId.systemDefault().getId())).toString(str[0].trim())).as(mp.getKey());
+			}
+			else if(mp.getType().equals("multiply")) 
+			{//인수들의 곱
+				String [] str = val.split(","); 
+				if(str == null || str.length != 2) continue;
+				p = p.and(ArithmeticOperators.Multiply.valueOf(str[0].trim()).multiplyBy(str[1].trim())).as(mp.getKey().trim());
+			}
+			else if(mp.getType().equals("subtract")) 
+			{//첫번째 인수에서 2번째 인수를 뺌
+				
+				String [] str = val.split(","); 
+				if(str == null || str.length != 2) continue;
+				p = p.and(ArithmeticOperators.Subtract.valueOf(str[0].trim()).subtract(str[1].trim())).as(mp.getKey().trim());				
+//				List<String> llist = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
+//				if(llist == null || llist.size() == 0) continue;
+//				d = d == null? new Document(mp.getKey() , new Document("$subtract", llist)  )
+//						     :     d.append(mp.getKey() , new Document("$subtract", llist)  );
+			}
 			
-			return new Document("$project" , d);
-			
-		} ;
-		operationList.add(projectOperation);
+		}
+		operationList.add(p);
+		
+//Deprecated
+//		AggregationOperation projectOperation = 
+//		context ->{
+//			
+//			Document d = null;
+//			for(MongoProps mp : conList) {
+//				if(mp.getType().equals("Y") || mp.getType().equals("")) 
+//				{
+//					d = d == null? new Document(mp.getKey(),mp.getValue())
+//							         : d.append(mp.getKey(),mp.getValue());
+//				}
+//				else if(mp.getType().equals("N") ) //컬럼 안보이게
+//				{
+//					String key = mp.getKey().equals("id") ? "_id" : mp.getKey();
+//					d = d == null? new Document(key , 0L)
+//							         : d.append(key , 0L);
+//				}
+//				else if(mp.getType().equals("dateToString")) 
+//				{
+//					String [] str = ((String)mp.getValue()).split(",");
+//					if(str == null || str.length != 2) continue;
+//					d = d == null? new Document(mp.getKey() , new Document("$dateToString", new Document("format", str[0].trim()).append("date", str[1].trim())) )
+//							     :     d.append(mp.getKey() , new Document("$dateToString", new Document("format", str[0].trim()).append("date", str[1].trim())) );
+//				}
+//				else if(mp.getType().equals("multiply")) 
+//				{//인수들의 곱
+//					List<String> llist = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
+//					if(llist == null || llist.size() == 0) continue;
+//					d = d == null? new Document(mp.getKey() , new Document("$multiply", llist)  )
+//							     :     d.append(mp.getKey() , new Document("$multiply", llist)  );
+//				}
+//				else if(mp.getType().equals("subtract")) 
+//				{//첫번째 인수에서 2번째 인수를 뺌
+//					List<String> llist = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
+//					if(llist == null || llist.size() == 0) continue;
+//					d = d == null? new Document(mp.getKey() , new Document("$subtract", llist)  )
+//							     :     d.append(mp.getKey() , new Document("$subtract", llist)  );
+//				}
+//			}
+//			if(d == null) return null;
+//			
+//			return new Document("$project" , d);
+//			
+//		} ;
+//		operationList.add(projectOperation);
 		
 		return this;
 	}
@@ -251,35 +298,73 @@ public class AggregationBuilder {
 		return setGroup(props.getList());
 	}
 	public AggregationBuilder setGroup(final List<MongoProps> conList) {
-			
-		AggregationOperation groupOperation =
-		context -> {
-
-			Document d = null;
-			for(MongoProps mp : conList) 
-			{
-				if(mp.getType().equals("id")) 
-				{
-					List<String> idList = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
-					if(idList == null || idList.size() == 0) continue;
-					d = d == null? new Document("_id" , idList)
-							         : d.append("_id" , idList);
-				}
-				else if(mp.getType().equals("sum")) 
-				{
-					d = d == null? new Document(mp.getKey() , new Document("$sum", mp.getValue()) )
-							     :     d.append(mp.getKey() , new Document("$sum", mp.getValue()) );
-				}else {
-					d = d == null? new Document(mp.getKey() , new Document("$"+mp.getType() , mp.getValue()) )
-						         :     d.append(mp.getKey() , new Document("$"+mp.getType() , mp.getValue()) );
-				}
-			}
-			if(d == null) return null;
-			
-			return new Document("$group" , d);
-		};
 		
-		operationList.add(groupOperation);
+		GroupOperation g = null;
+		for(MongoProps mp :conList) 
+		{
+			String val = (String)mp.getValue();
+			val = val.replace("$", "");
+			String key = mp.getKey();
+			
+			if(mp.getType().equals("id")) {
+				g = Aggregation.group( val.split(",") );// "$newReserveDate",
+			}
+			else if(mp.getType().equals("sum")) {
+				g = g.sum(val).as(key);
+			}
+			else if(mp.getType().equals("max")) {
+				g = g.max(val).as(key);
+			}
+			else if(mp.getType().equals("last")) {
+				g = g.last(val).as(key);
+			}
+			else if(mp.getType().equals("first")) {
+				g = g.first(val).as(key);
+			}
+			else if(mp.getType().equals("count")) {
+				g = g.count().as(key);
+			}
+		}
+		
+		if(g != null) {
+			operationList.add(g);
+		}else {
+			log.error("setGroup GroupOperation null error");
+		}
+		
+		
+		
+		//deprecated
+//		AggregationOperation groupOperation =
+//		context -> {
+//
+//			Document d = null;
+//			for(MongoProps mp : conList) 
+//			{
+//				if(mp.getType().equals("id")) 
+//				{
+//					List<String> idList = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
+//					if(idList == null || idList.size() == 0) continue;
+//					d = d == null? new Document("_id" , idList)
+//							         : d.append("_id" , idList);
+//				}
+//				else if(mp.getType().equals("sum")) 
+//				{
+//					d = d == null? new Document(mp.getKey() , new Document("$sum", mp.getValue()) )
+//							     :     d.append(mp.getKey() , new Document("$sum", mp.getValue()) );
+//				}
+//				else 
+//				{
+//					d = d == null? new Document(mp.getKey() , new Document("$"+mp.getType() , mp.getValue()) )
+//						         :     d.append(mp.getKey() , new Document("$"+mp.getType() , mp.getValue()) );
+//				}
+//			}
+//			if(d == null) return null;
+//			
+//			return new Document("$group" , d);
+//		};
+//		
+//		operationList.add(groupOperation);
 			
 		return this;
 
@@ -295,37 +380,53 @@ public class AggregationBuilder {
 		return setSort(props.getList());
 	}
 	public AggregationBuilder setSort(final List<MongoProps> conList) {
+		SortOperation s = null;
 		
-		AggregationOperation sortOperation = 
-		context -> {
-			Document d = null;
-			for(MongoProps mp: conList) {
-				Long val = 1L;
-				if(mp.getValue() instanceof String) {
-					val = ((String)mp.getValue()).trim().equals("asc") ?  1L
-						 :((String)mp.getValue()).trim().equals("desc")? -1L
-						 :1L;//default asc
-				}
-				else if(mp.getValue() instanceof Integer) {
-					val =Long.valueOf((int)mp.getValue());
-				}
-				else if(mp.getValue() instanceof Long) {
-					val = ((Long)mp.getValue());
-				}
-				
-				
-				if(d == null) {
-					d = new Document(mp.getKey(), val); 
-				}else {
-					d.append(mp.getKey(), val);
-				}
+		for(MongoProps mp: conList) {
+			String key = mp.getKey();
+			String val = (String)mp.getValue();
+			//default DESC
+			Direction direction = val.equals("asc") || val.equals("1")
+					              ? Sort.Direction.ASC 
+					              : Sort.Direction.DESC;
+			if(s == null) {
+				s = Aggregation.sort(direction, key);
+			}else {
+				s = s.and(direction, key);
 			}
-			
-			return new Document("$sort", d);
-		};
+		}
+		operationList.add(s);
 		
+		//deprecated
+//		AggregationOperation sortOperation = 
+//		context -> {
+//			Document d = null;
+//			for(MongoProps mp: conList) {
+//				Long val = 1L;
+//				if(mp.getValue() instanceof String) {
+//					val = ((String)mp.getValue()).trim().equals("asc") ?  1L
+//						 :((String)mp.getValue()).trim().equals("desc")? -1L
+//						 :1L;//default asc
+//				}
+//				else if(mp.getValue() instanceof Integer) {
+//					val =Long.valueOf((int)mp.getValue());
+//				}
+//				else if(mp.getValue() instanceof Long) {
+//					val = ((Long)mp.getValue());
+//				}
+//				
+//				
+//				if(d == null) {
+//					d = new Document(mp.getKey(), val); 
+//				}else {
+//					d.append(mp.getKey(), val);
+//				}
+//			}
+//			
+//			return new Document("$sort", d);
+//		};
+//		operationList.add(sortOperation);
 		
-		operationList.add(sortOperation);
 		return this;
 	}
 

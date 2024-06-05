@@ -405,6 +405,7 @@ public class OrderService {
 	                                 .andExpression("total").as("total")
 	                                 .andExpression("totCnt").as("totCnt")
 	                                 .andExpression("cnt").as("cnt")
+	                                 .and("bb").as("aa")
 	                                 ,
 				Aggregation.sort(Sort.Direction.DESC, "total")
 					
@@ -479,7 +480,7 @@ public class OrderService {
 		             .newInsAppend("lte").key("reservationDate").val(OffsetDateTime.now());
 		
 		//1번째 조건 삭제
-		matchProps.delMongoProps(1);//기본 30만건에 unwind로 array가 풀리면서 100만건 이상일듯 -> 대략 12초 정도 걸림.
+//		matchProps.delMongoProps(1);//기본 30만건에 unwind로 array가 풀리면서 100만건 이상일듯 -> 대략 12초 정도 걸림.
 		
 		//project type= [표현여부 또는 계산할 예약어] Y:표현 N:표현안함 예약어:dateToString,multiply / key = 컬럼 / val = 값
 		MongoPropsBuilder projectProps = 
@@ -500,16 +501,19 @@ public class OrderService {
 		
 		MongoPropsBuilder projectProps2 = 
 				mongoUtil.newMongoProp("N")  .key("id")            
-				         .newInsAppend("Y")  .key("reserveDate").val(1L)
-				         .newInsAppend("Y")  .key("pname")      .val(1L)
-				         .newInsAppend("Y")  .key("fCnt")       .val(1L)
-				         .newInsAppend("Y")  .key("fPrice")     .val(1L)
-				         .newInsAppend("Y")  .key("totPrice")   .val(1L);
+				         .newInsAppend("Y")  .key("reserveDate").val("")
+				         .newInsAppend("Y")  .key("pname")      .val("")
+				         .newInsAppend("Y")  .key("fCnt")       .val("")
+				         .newInsAppend("Y")  .key("fPrice")     .val("")
+				         .newInsAppend("Y")  .key("totPrice")   .val("")
+				         // type:키워드 , key: 표현 컬럼명  , val : ,로 구분된 2개짜리 변수 = 첫번째 변수에서 2번째 변수를 뺀 값
+				         .newInsAppend("subtract")  .key("subtractTest")   .val("$totPrice,$fPrice")
+				         ;
 		
 		//sort type= 사용안함 안넣어도됨 / key = 정렬컬럼 / val = asc or desc 또는 1 또는 -1 
 		MongoPropsBuilder sortProps = 
 				mongoUtil.newMongoProp("").key("reserveDate").val("asc")        
-				         .newInsAppend("").key("pname").val(1);
+				         .newInsAppend("").key("pname").val("-1");
 		
 		
 		AggregationBuilder newBuilder = new AggregationBuilder(mongoTemplate);
@@ -530,48 +534,48 @@ public class OrderService {
 		
 		
 		
-		AggregationBuilder newBuilder2 = new AggregationBuilder(mongoTemplate);
-		List<Object> resList2 = 
-		newBuilder2.setMatch(mongoUtil.newMongoProp("gte").key("reservationDate").val(OffsetDateTime.now().minusDays(1))
-	                                  .newInsAppend("lte").key("reservationDate").val(OffsetDateTime.now())
-	                                  .getList()
-				   )
-		           .unwind("$prodList", true)
-		           .setProject(mongoUtil.newMongoProp("Y")           .key("prodName")      .val("$prodList.prodNm")
-					                    .newInsAppend("Y")           .key("fCnt")          .val("$prodList.cnt")
-					                    .newInsAppend("Y")           .key("salePrice")     .val("$prodList.discountPrice")
-					                    .newInsAppend("dateToString").key("newReserveDate").val("%Y-%m-%d,$reservationDate")
-					                    .newInsAppend("multiply")    .key("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice")
-					                    .getList()
-		           )
-		           .setGroup(mongoUtil.newMongoProp("id")    .key("")           .val("$newReserveDate,$prodName")
-					                  .newInsAppend("first") .key("reserveDate").val("$newReserveDate")
-					                  .newInsAppend("first") .key("pname")      .val("$prodName")
-					                  .newInsAppend("sum")   .key("fCnt")       .val("$fCnt")
-					                  .newInsAppend("max")   .key("fPrice")     .val("$salePrice")
-					                  .newInsAppend("sum")   .key("totPrice")   .val("$saleTotPrice")
-					                  .getList()
-				   )
-		           .setProject(mongoUtil.newMongoProp("N")         .key("id")            
-					                    .newInsAppend("Y")         .key("reserveDate").val(1L)
-					                    .newInsAppend("Y")         .key("pname")      .val(1L)
-					                    .newInsAppend("Y")         .key("fCnt")       .val(1L)
-					                    .newInsAppend("Y")         .key("fPrice")     .val(1L)
-					                    .newInsAppend("Y")         .key("totPrice")   .val(1L)
-					                    .newInsAppend("subtract")  .key("minusTest")  .val("$fCnt,$fPrice")
-					                    .getList()
-				   )
-		           .setSort(mongoUtil.newMongoProp("").key("totPrice").val("asc")        
-					                 .newInsAppend("").key("fPrice")  .val(-1)
-					                 .getList()
-				   )
-		           .aggregate("OrderInfo", Object.class);
-		
-		if(resList2.size() < 100) {
-			log.info("resList2.size = {} / resList2 = {}",resList2.size(), resList2);	
-		}else {
-			log.info("resList2.size = {} ",resList2.size());
-		}
+//		AggregationBuilder newBuilder2 = new AggregationBuilder(mongoTemplate);
+//		List<Object> resList2 = 
+//		newBuilder2.setMatch(mongoUtil.newMongoProp("gte").key("reservationDate").val(OffsetDateTime.now().minusDays(1))
+//	                                  .newInsAppend("lte").key("reservationDate").val(OffsetDateTime.now())
+//	                                  .getList()
+//				   )
+//		           .unwind("$prodList", true)
+//		           .setProject(mongoUtil.newMongoProp("Y")           .key("prodName")      .val("$prodList.prodNm")
+//					                    .newInsAppend("Y")           .key("fCnt")          .val("$prodList.cnt")
+//					                    .newInsAppend("Y")           .key("salePrice")     .val("$prodList.discountPrice")
+//					                    .newInsAppend("dateToString").key("newReserveDate").val("%Y-%m-%d,$reservationDate")
+//					                    .newInsAppend("multiply")    .key("saleTotPrice")  .val("$prodList.cnt,$prodList.discountPrice")
+//					                    .getList()
+//		           )
+//		           .setGroup(mongoUtil.newMongoProp("id")    .key("")           .val("$newReserveDate,$prodName")
+//					                  .newInsAppend("first") .key("reserveDate").val("$newReserveDate")
+//					                  .newInsAppend("first") .key("pname")      .val("$prodName")
+//					                  .newInsAppend("sum")   .key("fCnt")       .val("$fCnt")
+//					                  .newInsAppend("max")   .key("fPrice")     .val("$salePrice")
+//					                  .newInsAppend("sum")   .key("totPrice")   .val("$saleTotPrice")
+//					                  .getList()
+//				   )
+//		           .setProject(mongoUtil.newMongoProp("N")         .key("id")            
+//					                    .newInsAppend("Y")         .key("reserveDate").val(1L)
+//					                    .newInsAppend("Y")         .key("pname")      .val(1L)
+//					                    .newInsAppend("Y")         .key("fCnt")       .val(1L)
+//					                    .newInsAppend("Y")         .key("fPrice")     .val(1L)
+//					                    .newInsAppend("Y")         .key("totPrice")   .val(1L)
+//					                    .newInsAppend("subtract")  .key("minusTest")  .val("$fCnt,$fPrice")
+//					                    .getList()
+//				   )
+//		           .setSort(mongoUtil.newMongoProp("").key("totPrice").val("asc")        
+//					                 .newInsAppend("").key("fPrice")  .val("-1")
+//					                 .getList()
+//				   )
+//		           .aggregate("OrderInfo", Object.class);
+//		
+//		if(resList2.size() < 100) {
+//			log.info("resList2.size = {} / resList2 = {}",resList2.size(), resList2);	
+//		}else {
+//			log.info("resList2.size = {} ",resList2.size());
+//		}
 		
 	}
 	
