@@ -118,17 +118,11 @@ public class AggregationBuilder {
 			Object obj  = mp.getValue();
 			Criteria c  = new Criteria(key);
 			
-			if(obj instanceof String) {
-				
-			}
-			else if(obj instanceof OffsetDateTime) {
+			if(obj instanceof OffsetDateTime) {
 				obj = offsetDateTimeToDate((OffsetDateTime)obj) ;
 			}
 			else if(obj instanceof LocalDateTime) {
 				obj = localDateTimeToDate((LocalDateTime)obj) ;
-			}
-			else {
-				
 			}
 			
 			if(expr.equals("eq"    ))      {c.is(obj);              }              
