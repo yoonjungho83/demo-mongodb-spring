@@ -146,7 +146,7 @@ public class AggregationBuilder {
 		MatchOperation m = Aggregation.match( new Criteria().andOperator(cList) );
 		operationList.add(m);
 		
-		
+		//Deprecated		
 //		List<Document> list  = new ArrayList<>();
 //		for(MongoProps mp :conList) {
 //			String type = "$"+mp.getType().trim();
