@@ -110,23 +110,25 @@ public class AggregationBuilder {
 				
 		List<Criteria> cList = new ArrayList<>();
 		for(MongoProps mp : conList) {
+			
+			if(mp.getType().equals("")) continue;
+			
 			String key  = mp.getKey();
 			String expr = mp.getType();
-			Object val  = mp.getValue();
+			Object obj  = mp.getValue();
 			Criteria c  = new Criteria(key);
 			
-			Object obj = null;
-			if(val instanceof String) {
-				obj = val;
+			if(obj instanceof String) {
+				
 			}
-			else if(val instanceof OffsetDateTime) {
-				obj = offsetDateTimeToDate((OffsetDateTime)mp.getValue()) ;
+			else if(obj instanceof OffsetDateTime) {
+				obj = offsetDateTimeToDate((OffsetDateTime)obj) ;
 			}
-			else if(val instanceof LocalDateTime) {
-				obj = localDateTimeToDate((LocalDateTime)mp.getValue()) ;
+			else if(obj instanceof LocalDateTime) {
+				obj = localDateTimeToDate((LocalDateTime)obj) ;
 			}
 			else {
-				obj = val;
+				
 			}
 			
 			if(expr.equals("eq"    ))      {c.is(obj);              }              
@@ -136,9 +138,10 @@ public class AggregationBuilder {
 			else if(expr.equals("gte"   )) {c.gte(obj);             }             
 			else if(expr.equals("lt"    )) {c.lt(obj);              }              
 			else if(expr.equals("lte"   )) {c.lte(obj);             }             
+			else if(expr.equals("like"  )) {c.regex((String)obj);  }
 			else if(expr.equals("in"    )) {
-	//			ArrayList<String> list = new ArrayList<>(Stream.of(((String)val).split(",")).collect(Collectors.toList()));
-	//			c.in(list); 
+				String [] inArr = ((String)obj).split(",");
+				c.in(Arrays.asList(inArr)); 
 			}
 		     cList.add(c);
 		}

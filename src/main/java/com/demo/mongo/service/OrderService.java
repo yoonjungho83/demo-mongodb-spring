@@ -477,7 +477,10 @@ public class OrderService {
 		//match type= 조건 / key = 컬럼 / val = 값
 		MongoPropsBuilder matchProps = 
 			mongoUtil.newMongoProp("gte").key("reservationDate").val(OffsetDateTime.now().minusDays(1))
-		             .newInsAppend("lte").key("reservationDate").val(OffsetDateTime.now());
+		             .newInsAppend("lte").key("reservationDate").val(OffsetDateTime.now())
+//		             .newInsAppend("like").key("orderNum").val("2024-06-03T17:13:21")
+//		             .newInsAppend("in").key("orderNum").val("2024-06-03T17:13:21.720245800,2024-06-03T17:13:21.741631900")
+		             ;
 		
 		//1번째 조건 삭제
 //		matchProps.delMongoProps(1);//기본 30만건에 unwind로 array가 풀리면서 100만건 이상일듯 -> 대략 12초 정도 걸림.
