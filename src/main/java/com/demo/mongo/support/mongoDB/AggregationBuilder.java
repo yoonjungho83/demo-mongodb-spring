@@ -237,14 +237,9 @@ public class AggregationBuilder {
 			}
 			else if(mp.getType().equals("subtract")) 
 			{//첫번째 인수에서 2번째 인수를 뺌
-				
 				String [] str = val.split(","); 
 				if(str == null || str.length != 2) continue;
 				p = p.and(ArithmeticOperators.Subtract.valueOf(str[0].trim()).subtract(str[1].trim())).as(mp.getKey().trim());				
-//				List<String> llist = Arrays.asList(((String)mp.getValue()).split(",")).stream().map(x->x.trim()).collect(Collectors.toList());
-//				if(llist == null || llist.size() == 0) continue;
-//				d = d == null? new Document(mp.getKey() , new Document("$subtract", llist)  )
-//						     :     d.append(mp.getKey() , new Document("$subtract", llist)  );
 			}
 			
 		}
